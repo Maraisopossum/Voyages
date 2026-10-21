@@ -2,77 +2,277 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Réunion · Sud et Ouest</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<title>La Réunion, août 2027</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>
-/* Layout: carte en tête (non collante), puis carnet jour par jour groupé par base ; basalte + lagon */
+/* Roadbook, comme La Réunion : bandeau carmin du drapeau de Madrid avec ses 7 étoiles + plan d'ensemble, puis le carnet jour par jour (règles noires épaisses, tracés à pied, heures, tronçons). */
 :root{
-  --bg:#f3f5f2; --paper:#ffffff; --ink:#1b2422; --muted:#5d6b67; --line:#d8dfdb; --lagon:#0e8f8a;
-  --display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
-  --body:"Atkinson Hyperlegible", system-ui, -apple-system, sans-serif;
+  --paper:#f1f2f3; --panel:#ffffff; --ink:#141517; --muted:#4c5257; --rule:#141517; --hair:#cdd2d5;
+  --mast:#b3122a; --onmast:#ffffff; --hi:#ffd23f;
+  --d1:#b3122a; --d2:#c25e00; --d3:#1d4fd8; --d4:#18794e; --d5:#7a3fc4; --metro:#1d4fd8;
+  --land:#eceeef; --park:#cfe3c6; --water:#a2cde2; --street:#ffffff; --case:#c4cacd; --maptext:#3a4146;
+  --ff-d:'Barlow Condensed','Arial Narrow',sans-serif; --ff-b:'Barlow','Helvetica Neue',Arial,sans-serif;
 }
-@media (prefers-color-scheme: dark){:root{--bg:#121716;--paper:#1b2220;--ink:#e7ecea;--muted:#9aa8a3;--line:#2f3936;--lagon:#3cc2bb;color-scheme:dark}}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0f1113; --panel:#171a1d; --ink:#eef0f1; --muted:#a6adb2; --rule:#eef0f1; --hair:#2c3237;
+  --mast:#8f0e22; --onmast:#ffffff;
+  --d1:#ff6b7d; --d2:#ffa24d; --d3:#7aa2ff; --d4:#4fcf94; --d5:#c19bff; --metro:#7aa2ff;
+  --land:#1b1f22; --park:#22392a; --water:#1e4658; --street:#3b4349; --case:#2a3034; --maptext:#c3cacf;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0f1113; --panel:#171a1d; --ink:#eef0f1; --muted:#a6adb2; --rule:#eef0f1; --hair:#2c3237;
+  --mast:#8f0e22; --onmast:#ffffff;
+  --d1:#ff6b7d; --d2:#ffa24d; --d3:#7aa2ff; --d4:#4fcf94; --d5:#c19bff; --metro:#7aa2ff;
+  --land:#1b1f22; --park:#22392a; --water:#1e4658; --street:#3b4349; --case:#2a3034; --maptext:#c3cacf;
+  color-scheme:dark}
 *{box-sizing:border-box}
-html,body{margin:0}
-body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--body)}
-.wrap{max-width:1100px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
-header{padding-block:20px 12px}
-h1{font:800 clamp(30px,6vw,52px)/1 var(--display);margin:0;letter-spacing:-.02em;text-wrap:balance}
-h1 span{color:var(--lagon)}
-.sub{color:var(--muted);margin:.4em 0 0}
-#map{height:clamp(300px,48vh,560px);border-radius:10px;border:1px solid var(--line)}
-.bar{margin:8px 0 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:13px}
-.bar button{font:700 13px var(--body);border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:99px;padding:7px 12px;cursor:pointer}
-.bar button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
-#status{color:var(--muted);margin-left:auto}
-main{padding-block:12px 60px}
-.bases{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:18px 0}
-.base{background:var(--paper);border:1px solid var(--line);border-top:5px solid var(--c);border-radius:8px;padding:12px 14px}
-.base b{font:800 18px var(--display);display:block}
-.base span{font-size:14px;color:var(--muted)}
-.stage{margin:30px 0 8px;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
-.stage h2{font:800 24px/1.1 var(--display);margin:0}
-.stage .nights{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
-.chip{display:inline-block;width:14px;height:14px;border-radius:4px;flex:none}
-.day{background:var(--paper);border:1px solid var(--line);border-left:5px solid var(--c);border-radius:8px;padding:14px 16px;margin:10px 0;cursor:pointer}
-.day:focus-visible,.day.on{outline:2px solid var(--c);outline-offset:2px}
-.day h3{margin:0 0 4px;font:700 17px var(--body)}
-.day .date{font:800 13px var(--display);color:var(--c);text-transform:uppercase;letter-spacing:.05em}
-.day p{margin:.35em 0}
-.bag{display:inline-block;font-size:12px;font-weight:700;border:1px solid var(--c);color:var(--c);border-radius:99px;padding:1px 9px;margin-left:6px;vertical-align:2px}
-.road{font:700 14px var(--body);color:var(--c);margin:.2em 0 .4em}
-.tag{font-size:14px;color:var(--muted)}
-.tag b{color:var(--ink)}
-.legs{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:6px}
-.box{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin:14px 0}
-.box h2{font:800 20px var(--display);margin:0 0 6px}
-.box ul{margin:.3em 0;padding-left:1.2em}
-.leaflet-popup-content{font:14px/1.4 var(--body)}
-.home{background:var(--c);color:#fff;border:2px solid #fff;border-radius:50%;width:26px!important;height:26px!important;display:grid;place-items:center;font:800 13px var(--display);box-shadow:0 1px 4px rgba(0,0,0,.4)}
+body{background:var(--paper);color:var(--ink);font:17px/1.55 var(--ff-b);margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
+h1,h2,h3,h4{font-family:var(--ff-d);margin:0;text-wrap:balance;line-height:1.04}
+p{margin:.45rem 0}
+a{color:var(--ink);text-decoration-thickness:2px;text-underline-offset:3px;text-decoration-color:var(--d1)}
+:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+.mast{background:var(--mast);color:var(--onmast);border-bottom:6px solid var(--rule)}
+.mast-in{max-width:72rem;margin:0 auto;padding-block:1.4rem 1.2rem;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:1.4rem 2rem;align-items:start}
+.stars{display:flex;gap:.35rem;margin-bottom:.6rem}
+.stars svg{width:1.05rem;height:1.05rem;fill:var(--onmast)}
+.mast h1{font-size:clamp(3.6rem,13vw,6.6rem);font-weight:700;text-transform:uppercase;letter-spacing:-.005em}
+.dates{font:600 1.45rem/1.15 var(--ff-d);margin:.6rem 0 .8rem}
+.mast .lead{font-size:1.04rem;max-width:32rem}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:.25rem 1rem;margin:1rem 0 0;font-size:.95rem;border-top:2px solid var(--onmast);padding-top:.7rem}
+.facts dt{font:600 .95rem var(--ff-d);text-transform:uppercase;letter-spacing:.06em;opacity:.85}
+.facts dd{margin:0}
+.mast-m{min-width:0}
+.omap{display:block;width:100%;height:auto;max-height:82vh;border:3px solid var(--rule);background:var(--land)}
+.chips{display:flex;flex-wrap:wrap;gap:.35rem;margin:.6rem 0 .2rem}
+.chip{font:700 1rem var(--ff-d);text-transform:uppercase;letter-spacing:.04em;border:2px solid var(--rule);background:var(--panel);color:var(--ink);padding:.3rem .7rem;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem}
+.chip i{width:.8rem;height:.8rem;display:inline-block}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.mcap{font-size:.82rem;opacity:.9;margin:.2rem 0 0}
+
+.wrap{max-width:72rem;margin:0 auto;padding-block:0 4rem;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.ruler{display:flex;gap:2px;margin:1.2rem 0 0}
+.rseg{flex:1 1 0;min-width:0;padding:.45rem .6rem;color:#fff;border-top:3px solid var(--rule);display:flex;flex-direction:column;text-decoration:none}
+.rseg b{font:700 1.6rem var(--ff-d);line-height:1}
+.rseg span{font-size:.76rem;overflow-wrap:anywhere}
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;overflow-x:auto;background:var(--paper);border-bottom:2px solid var(--rule);margin-top:1rem}
+.nav a{white-space:nowrap;text-decoration:none;font:600 1.05rem var(--ff-d);text-transform:uppercase;letter-spacing:.04em;padding:.7rem .9rem}
+.nav a:hover{background:var(--hi);color:#141517}
+h2{font-size:2.4rem;font-weight:700;text-transform:uppercase;margin:3.4rem 0 1rem;padding-top:.5rem;border-top:6px solid var(--rule);scroll-margin-top:3.6rem}
+.lead2{max-width:46rem}
+.cap{font-size:.86rem;color:var(--muted);max-width:46rem}
+
+.day{scroll-margin-top:3.6rem;background:var(--panel);border:2px solid var(--rule);margin:.8rem 0}
+.day summary{display:grid;grid-template-columns:3.6rem minmax(0,1fr) auto;align-items:stretch;cursor:pointer;list-style:none}
+.day summary::-webkit-details-marker{display:none}
+.dn{display:grid;place-items:center;color:#fff;font:700 2.2rem var(--ff-d);min-height:3.8rem;background:var(--dc)}
+.dt{padding:.65rem .8rem;font:700 1.45rem var(--ff-d);line-height:1.08;align-self:center;min-width:0}
+.dr{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;padding:0 1rem;text-align:right}
+.dd{font:600 .9rem var(--ff-d);text-transform:uppercase;letter-spacing:.07em;color:var(--muted);white-space:nowrap}
+.dk{font:700 1.2rem var(--ff-d);white-space:nowrap}
+.day[open] summary{border-bottom:2px solid var(--rule)}
+.db{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:1.4rem;padding:1rem}
+.dleft,.dside{min-width:0}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.6rem}
+.steps li{display:grid;grid-template-columns:3.9rem 1.6rem minmax(0,1fr);gap:.5rem;font-size:.96rem;align-items:start}
+.tm{white-space:nowrap;font:700 1.1rem var(--ff-d);color:var(--dc);font-variant-numeric:tabular-nums;padding-top:.05rem}
+.pn{width:1.45rem;height:1.45rem;border-radius:50%;background:var(--dc);color:#fff;font:700 .85rem var(--ff-d);display:grid;place-items:center;margin-top:.1rem}
+.pn.metro{background:none;border:2px dashed var(--metro);color:var(--metro)}
+.steps b{font-weight:600}
+.steps .opt{color:var(--muted)}
+.ado{margin:1rem 0 0;padding:.6rem .8rem;border:2px solid var(--rule);background:var(--paper);font-size:.93rem}
+.ado strong{font:700 1rem var(--ff-d);text-transform:uppercase;letter-spacing:.05em;margin-right:.4rem}
+.dside{display:flex;flex-direction:column;gap:.7rem}
+.dmap{display:block;width:100%;height:auto;border:2px solid var(--rule);background:var(--land)}
+.legs{width:100%;border-collapse:collapse;font-size:.88rem;background:var(--panel);border:2px solid var(--rule)}
+.legs th{font:600 .82rem var(--ff-d);text-transform:uppercase;letter-spacing:.07em;background:var(--ink);color:var(--paper);text-align:left;padding:.35rem .6rem}
+.legs td{padding:.32rem .6rem;border-bottom:1px solid var(--hair);vertical-align:top}
+.legs td.k{text-align:right;white-space:nowrap;font:700 1.02rem var(--ff-d);font-variant-numeric:tabular-nums}
+.legs tfoot td{font:700 1.15rem var(--ff-d);border-top:2px solid var(--rule)}
+.gm{display:flex;align-items:center;justify-content:space-between;gap:.6rem;border:2px solid var(--rule);padding:.5rem .8rem;text-decoration:none;font:700 1.05rem var(--ff-d);text-transform:uppercase;letter-spacing:.04em;background:var(--panel)}
+.gm:hover{background:var(--hi);color:#141517}
+.gm span{font:500 .82rem var(--ff-b);text-transform:none;letter-spacing:0;color:var(--muted)}
+.gm:hover span{color:#141517}
+
+.tw{overflow-x:auto;margin:1rem 0}
+.tbl{width:100%;border-collapse:collapse;background:var(--panel);border:2px solid var(--rule);font-size:.93rem;min-width:36rem}
+.tbl th{font:600 .84rem var(--ff-d);text-transform:uppercase;letter-spacing:.08em;background:var(--ink);color:var(--paper);text-align:left;padding:.5rem .7rem}
+.tbl td{padding:.5rem .7rem;border-bottom:1px solid var(--hair);vertical-align:top}
+.tbl td:first-child{font-weight:600}
+.tbl td.w{white-space:nowrap;font:600 1rem var(--ff-d)}
+.callout{background:var(--hi);color:#141517;padding:.7rem 1rem;max-width:48rem;margin:1rem 0;border:2px solid #141517}
+.callout a{color:#141517}
+.metro{display:grid;grid-template-columns:repeat(auto-fit,minmax(17rem,1fr));gap:1rem}
+.mcard{background:var(--panel);border:2px solid var(--rule);padding:.8rem 1rem;min-width:0}
+.mcard h3{font-size:1.35rem;margin-bottom:.4rem}
+.line{display:flex;flex-direction:column;gap:.45rem;margin:.4rem 0;padding:0;list-style:none}
+.line li{display:grid;grid-template-columns:2.6rem minmax(0,1fr);gap:.5rem;align-items:center;font-size:.94rem}
+.lb{font:700 1rem var(--ff-d);color:#fff;text-align:center;padding:.1rem 0;border-radius:3px}
+.l8{background:#e5007d}.l10{background:#00519e}.l1{background:#38a3dc}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(16rem,1fr));gap:1rem}
+.note{background:var(--panel);border:2px solid var(--rule);padding:.8rem 1rem}
+.note h3{font-size:1.3rem;margin-bottom:.3rem}
+.note p{font-size:.93rem;margin:.3rem 0}
+.src{font-size:.84rem;color:var(--muted);columns:2 18rem;column-gap:2rem}
+.src a{display:block;break-inside:avoid;padding:.1rem 0;color:var(--muted)}
+footer{margin-top:2.5rem;border-top:2px solid var(--rule);padding-top:.8rem;font-size:.84rem;color:var(--muted)}
+
+/* map drawing */
+.m-park{fill:var(--park)} .m-water{fill:none;stroke:var(--water);stroke-width:12;stroke-linecap:round;stroke-linejoin:round}
+.m-case{fill:none;stroke:var(--case);stroke-linecap:round;stroke-linejoin:round}
+.m-st{fill:none;stroke:var(--street);stroke-linecap:round;stroke-linejoin:round}
+.m-lab{fill:var(--maptext);font-family:var(--ff-d);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.m-halo{fill:none;stroke:var(--panel);stroke-linecap:round;stroke-linejoin:round}
+.m-rt{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.m-metro{fill:none;stroke:var(--metro);stroke-width:4;stroke-dasharray:2 7;stroke-linecap:round}
+.m-pin{stroke:var(--panel);stroke-width:3}
+.m-pn{fill:#fff;font-family:var(--ff-d);font-weight:700;text-anchor:middle;dominant-baseline:central}
+.m-home{fill:var(--ink);stroke:var(--panel);stroke-width:3}
+.m-hl{fill:var(--paper);font-family:var(--ff-d);font-weight:700;text-anchor:middle;dominant-baseline:central}
+.m-plab{fill:var(--ink);font-family:var(--ff-b);font-weight:600;paint-order:stroke;stroke:var(--panel);stroke-width:4px;stroke-linejoin:round}
+.m-attr{fill:var(--maptext);font-family:var(--ff-b);opacity:.8}
+.omap .rg{transition:opacity .2s}
+.omap.hl .rg{opacity:.15}.omap.hl .rg.on{opacity:1}
+
+@media (max-width:860px){.mast-in{grid-template-columns:1fr}.db{grid-template-columns:1fr}}
+@media (max-width:560px){
+  h2{font-size:2rem}
+  .day summary{grid-template-columns:3rem minmax(0,1fr)}
+  .dn{grid-row:1/3;font-size:1.9rem}
+  .dr{grid-column:2;flex-direction:row;gap:.8rem;align-items:baseline;justify-content:flex-start;padding:0 .8rem .55rem;text-align:left}
+  .steps li{grid-template-columns:3.6rem 1.5rem minmax(0,1fr)}
+  .rseg b{font-size:1.25rem}.rseg span{font-size:.68rem}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+<style>
+:root{--tilefilter:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--tilefilter:brightness(.72) invert(1) contrast(.88) hue-rotate(180deg) saturate(.6)}}
+:root[data-theme="dark"]{--tilefilter:brightness(.72) invert(1) contrast(.88) hue-rotate(180deg) saturate(.6)}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.omap{height:clamp(380px,72vh,720px)}
+.dmap{aspect-ratio:3/2;max-width:100%}
+.omap,.dmap{position:relative;z-index:0;isolation:isolate}
+.leaflet-container{font-family:var(--ff-b);background:var(--land)}
+.leaflet-tile-pane{filter:var(--tilefilter)}
+.pinN,.pinH{display:grid;place-items:center;width:26px;height:26px;font:700 14px var(--ff-d);color:#fff;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.pinN{border-radius:50%}
+.pinH{background:#141517;border-radius:2px}
+.tipL{font:600 13px var(--ff-b);padding:1px 6px;border-radius:2px;box-shadow:none;border:1px solid #141517;background:#fff;color:#141517}
+.tipL::before{display:none}
+.rstat{margin:-.3rem 0 0}
+</style>
+<style>
+/* Même roadbook que Madrid : bandeau couleur lagon, carte d'ensemble, réglette par base, carnet jour par jour. Lave pour la base Sud, lagon pour la base Ouest. */
+:root{--mast:#0b6461;--b1:#c2410c;--b2:#0e8f8a;--car:#1d4fd8;--foot:#d6197c}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--mast:#0a4a48;--b1:#ff8a50;--b2:#4fd1c9;--car:#7aa2ff;--foot:#ff6fb4}}
+:root[data-theme="dark"]{--mast:#0a4a48;--b1:#ff8a50;--b2:#4fd1c9;--car:#7aa2ff;--foot:#ff6fb4}
+.mast h1{font-size:clamp(3rem,9.5vw,5.4rem)}
+.road{font:600 1rem var(--ff-d);letter-spacing:.02em;color:var(--dc);margin:0 0 .5rem}
+.dtxt{font-size:.98rem;margin:0}
+.flag{display:inline-block;font:700 .8rem var(--ff-d);text-transform:uppercase;letter-spacing:.06em;border:2px solid var(--dc);color:var(--dc);padding:0 .45rem;margin-left:.5rem;vertical-align:1px}
+.basehead{display:flex;gap:.9rem;align-items:center;border-top:6px solid var(--bc);padding-top:.6rem;margin:2.4rem 0 .4rem}
+.bl{font:700 2.2rem var(--ff-d);width:3rem;height:3rem;display:grid;place-items:center;background:var(--bc);color:#fff;flex:none}
+.basehead h3{font-size:1.6rem;margin:0}
+.basehead p{margin:.1rem 0 0;color:var(--muted);font-size:.92rem}
+.legs td.i{width:1.6rem;padding-right:0}
+.lk{display:inline-block;width:1.1rem;height:.3rem;border-radius:2px;vertical-align:middle}
+.lk.car{background:var(--car)}.lk.foot{background:repeating-linear-gradient(90deg,var(--foot) 0 3px,transparent 3px 7px)}
+.tools{display:flex;flex-wrap:wrap;gap:.35rem;margin:.2rem 0 0}
+.lgd{display:flex;gap:1rem;font:600 .9rem var(--ff-d);text-transform:uppercase;letter-spacing:.05em;margin:.4rem 0 0}
+.lgd span{display:inline-flex;align-items:center;gap:.4rem}
+.box ul{margin:.3rem 0 0;padding-left:1.1rem;display:flex;flex-direction:column;gap:.3rem;font-size:.95rem}
 </style>
 </head>
 <body>
-<header class="wrap">
-  <h1>La Réunion <span>Sud et Ouest</span></h1>
-  <p class="sub">1er → 13 août 2027 · 2 adultes, 4 enfants (3, 12, 14, 16 ans), toujours ensemble · 4 nuits à Saint-Pierre, 8 nuits à L'Ermitage. Mafate vu d'en haut, les deux Pitons, le Trou de Fer, les tunnels de lave et le Voile de la Mariée. Temps de route indiqués à chaque jour.</p>
-</header>
-<div class="wrap">
-  <div id="map"></div>
-  <div class="bar">
-    <button id="bAll" aria-pressed="true">Tout le voyage</button>
-    <button id="bCar" aria-pressed="true">Routes</button>
-    <button id="bFoot" aria-pressed="true">Randos</button>
-    <button id="bDrag" aria-pressed="false" hidden>Déplacer la carte</button>
-    <button id="bGpx">Exporter GPX</button>
-    <span id="status">Calcul des tracés…</span>
+<header class="mast">
+  <div class="mast-in">
+    <div>
+      <div class="stars" aria-hidden="true"></div>
+      <h1>La Réunion</h1>
+      <p class="dates">1er → 13 août 2027<br>Sud et Ouest, toujours ensemble</p>
+      <p class="lead">Deux bases : Saint-Pierre pour le Trou de Fer, le volcan et les tunnels de lave, puis L'Ermitage pour le Piton des Neiges, Mafate vu d'en haut et la semaine au lagon. Chaque jour a sa carte, ses routes et ses randonnées calculées sur OpenStreetMap. Touche un jour pour le voir sur la carte.</p>
+      <dl class="facts">
+        <dt>Voyageurs</dt><dd>2 adultes, 4 enfants (3, 12, 14 et 16 ans)</dd>
+        <dt>Bases</dt><dd>Saint-Pierre 4 nuits · L'Ermitage 8 nuits</dd>
+        <dt>Route</dt><dd id="factCar">≈ 19 h de voiture sur le séjour</dd>
+        <dt>Randos</dt><dd id="factFoot">4 randonnées, dont les deux Pitons</dd>
+        <dt>Valises</dt><dd>un seul changement, le 5 août</dd>
+      </dl>
+    </div>
+    <div class="mast-m">
+      <div class="omap" id="omap" role="region" aria-label="Carte d'ensemble du voyage"></div>
+      <div class="chips" id="chips"></div>
+      <div class="tools">
+        <button class="chip" type="button" id="bCar" aria-pressed="true"><i style="background:var(--car)"></i>Routes</button>
+        <button class="chip" type="button" id="bFoot" aria-pressed="true"><i style="background:var(--foot)"></i>Randos</button>
+        <button class="chip" type="button" id="bGpx">Exporter GPX</button>
+      </div>
+      <p class="mcap" id="status">Calcul des tracés sur OpenStreetMap…</p>
+    </div>
   </div>
+</header>
+
+<div class="wrap">
+  <div class="ruler" id="ruler"></div>
+  <nav class="nav" aria-label="Sections">
+    <a href="#jours">Jours</a><a href="#reserver">À réserver</a><a href="#pratique">Pratique</a><a href="#sources">Sources</a>
+  </nav>
+
+  <h2 id="jours">Le carnet</h2>
+  <p class="lead2">Les temps de route du texte sont des estimations hors bouchons. Sous chaque carte, le tableau donne les distances et temps calculés sur OpenStreetMap. Trait plein pour la voiture, pointillés pour la marche.</p>
+  <div id="days"></div>
+
+  <h2 id="reserver">À réserver</h2>
+  <div class="tw"><table class="tbl">
+    <thead><tr><th>Quoi</th><th>Quand</th><th>Détails</th></tr></thead>
+    <tbody>
+      <tr><td>Refuge de la Caverne Dufour</td><td class="w">nuit du 7 août</td><td>6 lits. 02 62 90 78 78 ou 06 93 13 54 10. Nuit seule possible (20–21 € par personne), repas en option.</td></tr>
+      <tr><td>Logement Saint-Pierre</td><td class="w">1er → 5 août</td><td>4 nuits.</td></tr>
+      <tr><td>Logement L'Ermitage</td><td class="w">5 → 13 août</td><td>8 nuits, la nuit du 7 au refuge incluse : les valises restent dans la maison.</td></tr>
+      <tr><td>Tunnel de lave</td><td class="w">4 août</td><td>Trouver un opérateur qui accepte une enfant de 3 ans, formule famille sans passages à ramper.</td></tr>
+      <tr><td>Sortie baleines</td><td class="w">11 août</td><td>Au départ du port de Saint-Gilles, avec un opérateur labellisé.</td></tr>
+      <tr><td>Voiture</td><td class="w">1er → 13 août</td><td>Un 7 places long, ou un coffre de toit pour les valises.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="pratique">Pratique</h2>
+  <div class="notes">
+    <div class="note box"><h3>Pourquoi deux bases</h3><ul>
+      <li>Sans nuit dans Mafate, Hell-Bourg n'est plus utile : Mafate se regarde d'en haut depuis le Maïdo (6 août), le Piton des Neiges (8 août) et Roche Verre Bouteille (10 août).</li>
+      <li>Le Voile de la Mariée se fait le jour du départ, sur la route de l'aéroport : le vol est le soir.</li>
+      <li>Les valises ne bougent qu'une fois, le 5 août.</li></ul></div>
+    <div class="note box"><h3>Temps de route</h3><ul>
+      <li>Du 1er au 8 août : environ 14 h de voiture au total.</li>
+      <li>Du 9 au 13 août : environ 5 h, dont 3 h le jour du départ.</li>
+      <li>Aux heures de pointe, comptez 30 min de plus sur la route des Tamarins et autour de Saint-Denis.</li></ul></div>
+    <div class="note box"><h3>Le Piton des Neiges avec la petite</h3><ul>
+      <li>Sac de couchage enfant grand froid, sous-couches laine, bonnet, gants, chancelière pour le porte-bébé au sommet.</li>
+      <li>Règle fixée d'avance : nuit agitée, vomissements ou petite inhabituellement grognon au réveil, on renonce au sommet et on redescend tous ensemble.</li></ul></div>
+    <div class="note box"><h3>Avant chaque sortie</h3><ul>
+      <li>Vérifier l'ouverture des sentiers (ONF) et de l'enclos du volcan (OVPF ou préfecture).</li>
+      <li>Les tracés OSRM peuvent s'écarter du sentier réel : pour la navigation, utilisez les traces GPS des sites de randonnée.</li></ul></div>
+  </div>
+
+  <h2 id="sources">Sources</h2>
+  <div class="src">
+    <a href="https://horizon-reunion.com/randonnees-reunion" target="_blank" rel="noopener">Horizon Réunion · randonnées, dénivelés et durées</a>
+    <a href="https://www.refuges.info/point/1075/refuge-garde/Reunion/Caverne-Dufour/" target="_blank" rel="noopener">Refuges.info · Caverne Dufour</a>
+    <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap · données cartographiques</a>
+    <a href="https://routing.openstreetmap.de/" target="_blank" rel="noopener">FOSSGIS · calcul d'itinéraires OSRM</a>
+  </div>
+  <footer>Programme arrêté le 19 octobre 2026. Vérifiez ouvertures et tarifs avant le départ.</footer>
 </div>
-<main class="wrap" id="main"></main>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script>
+(function(){
 const P={
  aero:[-20.8871,55.5163,"Aéroport Roland-Garros"],
  stpierre:[-21.3393,55.4781,"Base 1 · Saint-Pierre"],
@@ -165,122 +365,137 @@ const D=[
   legs:[{m:"car",p:["ermitage","voile","hellbourg","aero"]}]}
 ];
 
-const map=L.map('map',{scrollWheelZoom:false,dragging:!L.Browser.mobile,tap:false}).setView([-21.11,55.53],10);
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© contributeurs OpenStreetMap'}).addTo(map);
-const carLayer=L.layerGroup().addTo(map), footLayer=L.layerGroup().addTo(map), mk=L.layerGroup().addTo(map);
-const used=new Set(); D.forEach(d=>d.legs.forEach(l=>l.p.forEach(k=>used.add(k))));
-const homeKeys=HOMES.map(h=>h[0]);
-used.forEach(k=>{if(homeKeys.includes(k))return;const[a,b,n]=P[k];L.circleMarker([a,b],{radius:5,color:'#1b2422',weight:2,fillColor:'#fff',fillOpacity:1}).bindPopup('<b>'+n+'</b>').addTo(mk)});
-HOMES.forEach(([k,i])=>{const s=S[i];L.marker([P[k][0],P[k][1]],{zIndexOffset:1000,icon:L.divIcon({className:'',html:`<div class="home" style="--c:${s.c}">${i+1}</div>`,iconSize:[26,26],iconAnchor:[13,13]})}).bindPopup('<b>'+s.n+' · '+s.z+'</b><br>'+s.nights).addTo(mk)});
 
-if(L.Browser.mobile){const b=document.getElementById('bDrag');b.hidden=false;b.onclick=()=>{const on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',on);b.textContent=on?'Bloquer la carte':'Déplacer la carte';on?map.dragging.enable():map.dragging.disable()}}
-
+const BC=["--b1","--b2"];
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim()||"#0e8f8a";
+const TILES="https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const ATTR='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · itinéraires <a href="https://routing.openstreetmap.de/">FOSSGIS OSRM</a>';
 const ROUTER={car:'https://routing.openstreetmap.de/routed-car/route/v1/driving/',foot:'https://routing.openstreetmap.de/routed-foot/route/v1/driving/'};
-const fmtKm=m=>(m/1000).toFixed(1).replace('.',',')+' km';
-const fmtT=s=>{const h=Math.floor(s/3600),m=Math.round(s%3600/60);return (h?h+' h ':'')+String(m).padStart(h?2:1,'0')+' min'};
+const fkm=m=>(m/1000).toFixed(1).replace('.',',');
+const fT=s=>{const h=Math.floor(s/3600),m=Math.round(s%3600/60);return (h?h+' h ':'')+String(m).padStart(h?2:1,'0')+' min';};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-let done=0,total=0,fails=0;
-D.forEach(d=>d.legs.forEach(l=>{if(!l.dup)total++}));
+const name=k=>P[k][2].replace(/^Base \d · /,'');
+const ll=k=>[P[k][0],P[k][1]];
 
-async function route(leg){
-  const coords=leg.p.map(k=>P[k][1]+','+P[k][0]).join(';');
-  for(let i=0;i<3;i++){
-    try{
-      const r=await fetch(ROUTER[leg.m]+coords+'?overview=full&geometries=geojson');
-      if(!r.ok) throw 0;
-      const j=await r.json(); if(j.code!=='Ok') throw 0;
-      return {geo:j.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]),dist:j.routes[0].distance,dur:j.routes[0].duration,ok:1};
-    }catch(e){await sleep(800*(i+1))}
-  }
-  return {geo:leg.p.map(k=>[P[k][0],P[k][1]]),ok:0};
+/* étoile : une silhouette de piton à la place des étoiles de Madrid */
+document.querySelector('.stars').innerHTML='<svg viewBox="0 0 64 24" style="width:4rem;height:1.5rem"><path d="M0 24 L14 9 L20 14 L32 1 L44 13 L50 8 L64 24 Z" fill="currentColor"/></svg>';
+
+function homeIcon(i){return L.divIcon({className:"",html:`<span class="pinH" style="background:var(${BC[i]})">${i+1}</span>`,iconSize:[26,26],iconAnchor:[13,13]});}
+function lineStyle(m,hi){return m==='car'?{color:css('--car'),weight:hi?6:4,opacity:hi?.95:.8}:{color:css('--foot'),weight:hi?6:4.5,opacity:1,dashArray:'2 8',lineCap:'round'};}
+
+/* plan d'ensemble */
+const om=L.map('omap',{scrollWheelZoom:false,zoomSnap:.25,dragging:!L.Browser.mobile,tap:false});
+L.tileLayer(TILES,{maxZoom:18,attribution:ATTR}).addTo(om);
+const carL=L.layerGroup().addTo(om),footL=L.layerGroup().addTo(om);
+const used=new Set();D.forEach(d=>d.legs.forEach(l=>l.p.forEach(k=>used.add(k))));
+const homeKeys=HOMES.map(h=>h[0]);
+used.forEach(k=>{if(homeKeys.includes(k))return;L.circleMarker(ll(k),{radius:4.5,color:'#141517',weight:2,fillColor:'#fff',fillOpacity:1}).bindPopup('<b>'+name(k)+'</b>').addTo(om);});
+HOMES.forEach(([k,i])=>L.marker(ll(k),{icon:homeIcon(i),zIndexOffset:1000,title:S[i].z}).addTo(om));
+const allB=L.latLngBounds(D.flatMap(d=>d.legs.flatMap(l=>l.p.map(ll))));
+om.fitBounds(allB,{padding:[12,12]});
+
+/* puces jours, réglette par base */
+const chips=document.getElementById('chips');
+function highlight(i){
+  D.forEach((d,j)=>d.legs.forEach(l=>{if(!l.o)return;const hi=i===null||j===i;l.o.setStyle(Object.assign(lineStyle(l.m,i!==null&&j===i),{opacity:hi?(l.m==='car'?.9:1):.12}));if(i!==null&&j===i)l.o.bringToFront();}));
+  if(i===null){om.fitBounds(allB,{padding:[12,12]});return;}
+  const b=L.latLngBounds(D[i].legs.flatMap(l=>l.res?l.res.geo:l.p.map(ll)));if(b.isValid())om.fitBounds(b,{padding:[24,24],maxZoom:13});
 }
-
-const lines=[];
-function style(leg,c,hi){return leg.m==='car'?{color:c,weight:hi?6:4,opacity:hi?1:.75}:{color:c,weight:hi?6:4,opacity:1,dashArray:'2 8',lineCap:'round'}}
-
-async function build(){
-  for(let di=0;di<D.length;di++){
-    const d=D[di],c=S[d.s].c;
-    for(const leg of d.legs){
-      if(leg.dup){leg.res=D[di-1].legs.find(x=>x.m==='foot').res;renderLegs(di);continue}
-      leg.res=await route(leg); done++; if(!leg.res.ok)fails++;
-      const g=L.polyline(leg.res.geo,style(leg,c)).addTo(leg.m==='car'?carLayer:footLayer);
-      g.bindPopup('<b>'+d.d+'</b><br>'+(leg.lab||leg.p.map(k=>P[k][2]).join(' → '))+(leg.res.ok?'<br>'+fmtKm(leg.res.dist)+(leg.m==='car'?' · '+fmtT(leg.res.dur):''):'<br><i>tracé approximatif</i>'));
-      g.on('click',()=>focusDay(di,false));
-      lines.push({di,g,leg});
-      document.getElementById('status').textContent='Tracés : '+done+'/'+total;
-      renderLegs(di);
-      await sleep(250);
-    }
-  }
-  document.getElementById('status').textContent=fails?fails+' tracé(s) approximatif(s), serveur OSM injoignable':'Tracés calculés sur OpenStreetMap';
-}
-
-const main=document.getElementById('main');
-let html='<div class="bases">'+S.map((s,i)=>`<div class="base" style="--c:${s.c}"><b>${i+1}. ${s.n} · ${s.z}</b><span>${s.nights}</span><p class="tag" style="margin:.4em 0 0">${s.why}</p></div>`).join('')+'</div>';
-let cur=-1;
 D.forEach((d,i)=>{
-  if(d.s!==cur){cur=d.s;const s=S[cur];
-    html+=`<div class="stage"><span class="chip" style="background:${s.c}"></span><h2>${s.n} · ${s.z}</h2><span class="nights">${s.nights}</span></div>`}
-  html+=`<article class="day" tabindex="0" id="d${i}" style="--c:${S[d.s].c}"><div class="date">${d.d}${d.eq?'<span class="bag">'+d.eq+'</span>':''}${d.bag?'<span class="bag">'+d.bag+'</span>':''}</div><h3>${d.t}</h3>${d.road?'<p class="road">🚗 '+d.road+'</p>':''}<p>${d.txt}</p><p class="tag"><b>Défi des ados :</b> ${d.ado}</p><div class="legs" id="l${i}"></div></article>`;
+  const b=document.createElement('button');b.className='chip';b.type='button';b.setAttribute('aria-pressed','false');b.title=d.d+' · '+d.t;
+  b.innerHTML=`<i style="background:var(${BC[d.s]})"></i>${i+1}`;
+  b.addEventListener('click',()=>{const on=b.getAttribute('aria-pressed')!=='true';chips.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed','false'));if(on){b.setAttribute('aria-pressed','true');highlight(i);}else highlight(null);});
+  chips.appendChild(b);
 });
-html+=`<section class="box"><h2>Pourquoi deux bases suffisent</h2><ul>
-<li>Sans nuit ni marche dans Mafate, Hell-Bourg n'est plus utile : Mafate se regarde d'en haut depuis le Maïdo (6 août), le Piton des Neiges (8 août) et Roche Verre Bouteille (10 août).</li>
-<li>Le Voile de la Mariée se fait le jour du départ, sur la route de l'aéroport : le vol est le soir.</li>
-<li>Saint-Pierre pour le Sud (Trou de Fer, volcan, tunnels), L'Ermitage pour le Piton des Neiges et le lagon.</li>
-<li>Les valises ne bougent qu'une fois, le 5 août.</li></ul></section>
-<section class="box"><h2>Temps de route sur le séjour</h2><ul>
-<li>Du 1er au 8 août : environ 14 h de voiture au total.</li>
-<li>Du 9 au 13 août : environ 5 h, dont 3 h le jour du départ avec le Voile de la Mariée.</li>
-<li>Temps indiqués hors bouchons. Aux heures de pointe, comptez 30 min de plus sur la route des Tamarins et autour de Saint-Denis.</li></ul></section>
-<section class="box"><h2>Le Piton des Neiges avec la petite</h2><ul>
-<li>Pour elle : sac de couchage enfant pour grand froid, sous-couches laine, bonnet, gants, chancelière pour le porte-bébé au sommet.</li>
-<li>Règle fixée d'avance : nuit agitée, vomissements ou petite inhabituellement grognon au réveil, on renonce au sommet et on redescend tous ensemble.</li></ul></section>
-<section class="box"><h2>À réserver en premier</h2><ul>
-<li>Refuge de la Caverne Dufour, nuit du 7 août, 6 lits : 02 62 90 78 78 ou 06 93 13 54 10. Nuit seule possible (20–21 € par personne), repas en option.</li>
-<li>Saint-Pierre du 1er au 5 août (4 nuits), L'Ermitage du 5 au 13 août (8 nuits, la nuit du 7 incluse).</li>
-<li>Tunnel de lave : trouver un opérateur qui accepte une enfant de 3 ans. Sortie baleines au départ de Saint-Gilles.</li>
-<li>Un 7 places long, ou un coffre de toit pour les valises.</li></ul></section>
-<p class="tag">Temps de route du texte : estimations hors bouchons. Les temps calculés sur OpenStreetMap s'affichent en bas de chaque jour quand la carte est chargée. Dénivelés et durées des randonnées repris de horizon-reunion.com. Vérifiez l'ouverture des sentiers (ONF) et de l'enclos du volcan avant chaque sortie.</p>`;
-main.innerHTML=html;
+const ruler=document.getElementById('ruler');
+S.forEach((s,i)=>{const a=document.createElement('a');a.className='rseg';a.href='#base'+i;a.style.background=`var(${BC[i]})`;a.innerHTML=`<b class="num" id="rb${i}">${s.z}</b><span id="rs${i}">${s.nights}</span>`;ruler.appendChild(a);});
+function tog(id,layer){const b=document.getElementById(id);b.onclick=()=>{const on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',on);on?layer.addTo(om):om.removeLayer(layer);};}
+tog('bCar',carL);tog('bFoot',footL);
+
+/* carnet */
+const host=document.getElementById('days');let cur=-1;
+D.forEach((d,i)=>{
+  if(d.s!==cur){cur=d.s;const s=S[cur];const h=document.createElement('div');h.className='basehead';h.id='base'+cur;h.style.setProperty('--bc',`var(${BC[cur]})`);
+    h.innerHTML=`<span class="bl">${cur+1}</span><div><h3>${s.n} · ${s.z}</h3><p>${s.nights} · ${s.why}</p></div>`;host.appendChild(h);}
+  const det=document.createElement('details');det.className='day';det.id='j'+(i+1);det.open=true;det.style.setProperty('--dc',`var(${BC[d.s]})`);
+  det.innerHTML=`<summary><span class="dn">${i+1}</span><span class="dt">${d.t}${d.bag?'<span class="flag">'+d.bag+'</span>':''}</span><span class="dr"><span class="dd">${d.d}</span><span class="dk num" id="dk${i}">${d.legs.length?'…':'repos'}</span></span></summary>`;
+  const body=document.createElement('div');body.className='db';
+  const left=document.createElement('div');left.className='dleft';
+  left.innerHTML=`${d.road?'<p class="road">'+d.road+'</p>':''}<p class="dtxt">${d.txt}</p><p class="ado"><strong>Défi ados</strong>${d.ado}</p>`;
+  const side=document.createElement('div');side.className='dside';
+  if(d.legs.length){
+    const md=document.createElement('div');md.className='dmap';md.id='map'+i;md.setAttribute('role','region');md.setAttribute('aria-label','Carte du '+d.d);side.appendChild(md);
+    const tb=document.createElement('table');tb.className='legs';tb.id='legs'+i;side.appendChild(tb);
+    const carPts=[];d.legs.filter(l=>l.m==='car').forEach(l=>l.p.forEach(k=>{if(carPts[carPts.length-1]!==k)carPts.push(k);}));
+    if(carPts.length>1){const g=carPts.map(k=>P[k][0].toFixed(5)+','+P[k][1].toFixed(5));
+      const url='https://www.google.com/maps/dir/?api=1&travelmode=driving&origin='+g[0]+'&destination='+g[g.length-1]+(g.length>2?'&waypoints='+encodeURIComponent(g.slice(1,-1).join('|')):'');
+      const a=document.createElement('a');a.className='gm';a.href=url;a.target='_blank';a.rel='noopener';a.innerHTML='Itinéraire en voiture <span>Google Maps ↗</span>';side.appendChild(a);}
+  }else{const p=document.createElement('p');p.className='note';p.textContent='Pas de voiture aujourd\'hui.';side.appendChild(p);}
+  body.appendChild(left);body.appendChild(side);det.appendChild(body);host.appendChild(det);
+  if(d.legs.length){
+    const m=L.map('map'+i,{scrollWheelZoom:false,zoomSnap:.25,dragging:!L.Browser.mobile,tap:false});
+    L.tileLayer(TILES,{maxZoom:18,attribution:ATTR}).addTo(m);
+    const pts=new Set();d.legs.forEach(l=>l.p.forEach(k=>pts.add(k)));
+    pts.forEach(k=>{const h=HOMES.find(x=>x[0]===k);if(h)L.marker(ll(k),{icon:homeIcon(h[1]),zIndexOffset:1000}).addTo(m);
+      else L.circleMarker(ll(k),{radius:5,color:'#141517',weight:2,fillColor:'#fff',fillOpacity:1}).bindTooltip(name(k),{direction:'top'}).addTo(m);});
+    d.legs.forEach(l=>{l.d=L.polyline(l.p.map(ll),Object.assign(lineStyle(l.m),{opacity:.5,dashArray:'6 8'})).addTo(m);});
+    m.fitBounds(L.latLngBounds([...pts].map(ll)),{padding:[24,24],maxZoom:13});
+    d.map=m;
+  }
+  d.legs.forEach(l=>{l.o=L.polyline(l.p.map(ll),Object.assign(lineStyle(l.m),{opacity:.4,dashArray:'6 8'})).addTo(l.m==='car'?carL:footL);});
+  renderLegs(i);
+});
 
 function renderLegs(i){
-  const el=document.getElementById('l'+i); const parts=[];
-  D[i].legs.forEach(l=>{ if(!l.res)return;
-    const ic=l.m==='car'?'🚗':'🥾';
-    parts.push(l.res.ok?ic+' '+fmtKm(l.res.dist)+(l.m==='car'?' · '+fmtT(l.res.dur):''):ic+' tracé approx.')});
-  el.textContent=parts.join('   ');
+  const d=D[i];const tb=document.getElementById('legs'+i);if(!tb)return;
+  let rows='',car=0,carT=0,foot=0,okAll=true;
+  d.legs.forEach(l=>{const lab=l.lab||l.p.map(name).join(' → ');
+    if(l.res&&l.res.ok){if(l.m==='car'){car+=l.res.dist;carT+=l.res.dur;}else foot+=l.res.dist;}else okAll=false;
+    const km=l.res&&l.res.ok?fkm(l.res.dist)+' km':(l.res?'approx.':'…');
+    const t=l.res&&l.res.ok&&l.m==='car'?fT(l.res.dur):(l.m==='foot'?'voir texte':'');
+    rows+=`<tr><td class="i"><span class="lk ${l.m}"></span></td><td>${lab}</td><td class="k">${km}</td><td class="k">${t}</td></tr>`;});
+  const tot=[car?'🚗 '+fT(carT):'',foot?'à pied '+fkm(foot)+' km':''].filter(Boolean).join(' · ');
+  tb.innerHTML=`<thead><tr><th colspan="2">Tronçon</th><th style="text-align:right">km</th><th style="text-align:right">temps</th></tr></thead><tbody>${rows}</tbody>`+(car?`<tfoot><tr><td colspan="2">Voiture du jour</td><td class="k">${fkm(car)}</td><td class="k">${fT(carT)}</td></tr></tfoot>`:'');
+  document.getElementById('dk'+i).textContent=car?fT(carT)+' de route':(foot?fkm(foot)+' km à pied':(d.legs.length?'…':'repos'));
 }
 
-function focusDay(i,scroll){
-  document.querySelectorAll('.day').forEach(e=>e.classList.toggle('on',e.id==='d'+i));
-  document.getElementById('bAll').setAttribute('aria-pressed',false);
-  const dupPrev=D[i].legs.some(l=>l.dup);
-  let b=null;
-  lines.forEach(o=>{const hi=o.di===i||(dupPrev&&o.di===i-1&&o.leg.m==='foot');
-    o.g.setStyle(Object.assign(style(o.leg,S[D[o.di].s].c,hi),{opacity:hi?1:.2}));
-    if(hi){o.g.bringToFront();b=b?b.extend(o.g.getBounds()):L.latLngBounds(o.g.getBounds().getSouthWest(),o.g.getBounds().getNorthEast())}});
-  if(b)map.fitBounds(b,{padding:[30,30],maxZoom:14});
-  if(scroll)document.getElementById('map').scrollIntoView({behavior:'smooth',block:'start'});
+function cacheGet(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch(e){return null;}}
+function cacheSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+async function route(leg){
+  const coords=leg.p.map(k=>P[k][1].toFixed(5)+','+P[k][0].toFixed(5)).join(';');
+  const key='reunion-osrm-v1-'+leg.m+'-'+coords;const c=cacheGet(key);if(c)return c;
+  for(let i=0;i<3;i++){
+    try{const r=await fetch(ROUTER[leg.m]+coords+'?overview=full&geometries=geojson');if(!r.ok)throw 0;
+      const j=await r.json();if(j.code!=='Ok')throw 0;
+      const res={geo:j.routes[0].geometry.coordinates.map(c=>[+c[1].toFixed(5),+c[0].toFixed(5)]),dist:j.routes[0].distance,dur:j.routes[0].duration,ok:1};
+      cacheSet(key,res);return res;}catch(e){await sleep(800*(i+1));}
+  }
+  return {geo:leg.p.map(ll),ok:0};
 }
-document.querySelectorAll('.day').forEach((e,i)=>{
-  e.addEventListener('click',()=>focusDay(i,true));
-  e.addEventListener('keydown',ev=>{if(ev.key==='Enter')focusDay(i,true)});
-});
-document.getElementById('bAll').onclick=()=>{document.getElementById('bAll').setAttribute('aria-pressed',true);document.querySelectorAll('.day').forEach(e=>e.classList.remove('on'));
-  lines.forEach(o=>o.g.setStyle(style(o.leg,S[D[o.di].s].c)));map.setView([-21.11,55.53],10)};
-function tog(id,layer){const b=document.getElementById(id);b.onclick=()=>{const on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',on);on?layer.addTo(map):map.removeLayer(layer)}}
-tog('bCar',carLayer);tog('bFoot',footLayer);
+const st=document.getElementById('status');
+(async()=>{
+  const all=D.flatMap((d,i)=>d.legs.map(l=>[i,l]));let n=0,fails=0;
+  for(const [i,l] of all){
+    l.res=await route(l);n++;if(!l.res.ok)fails++;
+    if(l.res.ok){l.o.setLatLngs(l.res.geo);l.o.setStyle(lineStyle(l.m));if(l.d){l.d.setLatLngs(l.res.geo);l.d.setStyle(lineStyle(l.m));}}
+    renderLegs(i);st.textContent='Calcul des tracés : '+n+'/'+all.length;await sleep(150);
+  }
+  D.forEach(d=>{if(d.map){const b=L.latLngBounds(d.legs.flatMap(l=>l.res.geo));d.map.fitBounds(b,{padding:[24,24],maxZoom:13});}});
+  let car=0,foot=0;const bs=[0,0];all.forEach(([i,l])=>{if(!l.res.ok)return;if(l.m==='car'){car+=l.res.dur;bs[D[i].s]+=l.res.dur;}else foot+=l.res.dist;});
+  if(car){document.getElementById('factCar').textContent=fT(car)+' de voiture sur le séjour';S.forEach((s,i)=>document.getElementById('rs'+i).textContent=s.nights.split(' · ')[0]+' · '+fT(bs[i])+' de route');}
+  if(foot)document.getElementById('factFoot').textContent='4 randonnées, '+fkm(foot)+' km à pied';
+  st.textContent=fails?fails+' tracé(s) approximatif(s) : serveur de calcul injoignable, rechargez plus tard.':'Routes et randonnées calculées sur OpenStreetMap. Trait plein : voiture · pointillés : marche.';
+})();
 
 document.getElementById('bGpx').onclick=()=>{
   const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
   let x='<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Reunion 2027" xmlns="http://www.topografix.com/GPX/1/1">\n';
-  used.forEach(k=>{x+=`<wpt lat="${P[k][0]}" lon="${P[k][1]}"><name>${esc(P[k][2])}</name></wpt>\n`});
-  lines.forEach(o=>{const d=D[o.di];x+=`<trk><name>${esc(d.d+' – '+(o.leg.m==='car'?'Route':'Rando')+' – '+(o.leg.lab||o.leg.p.map(k=>P[k][2]).join(' > ')))}</name><trkseg>`+o.leg.res.geo.map(p=>`<trkpt lat="${p[0].toFixed(6)}" lon="${p[1].toFixed(6)}"/>`).join('')+'</trkseg></trk>\n'});
+  used.forEach(k=>{x+=`<wpt lat="${P[k][0]}" lon="${P[k][1]}"><name>${esc(P[k][2])}</name></wpt>\n`;});
+  D.forEach(d=>d.legs.forEach(l=>{if(!l.res)return;x+=`<trk><name>${esc(d.d+' – '+(l.m==='car'?'Route':'Rando')+' – '+(l.lab||l.p.map(k=>P[k][2]).join(' > ')))}</name><trkseg>`+l.res.geo.map(p=>`<trkpt lat="${p[0].toFixed(6)}" lon="${p[1].toFixed(6)}"/>`).join('')+'</trkseg></trk>\n';}));
   x+='</gpx>';
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([x],{type:'application/gpx+xml'}));a.download='reunion-aout-2027.gpx';document.body.appendChild(a);a.click();a.remove();
 };
-build();
+})();
 </script>
 </body>
 </html>
