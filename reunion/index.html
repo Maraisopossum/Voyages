@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Réunion · Sud et Ouest</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: carte en tête (non collante), puis carnet jour par jour groupé par base ; basalte + lagon */
+:root{
+  --bg:#f3f5f2; --paper:#ffffff; --ink:#1b2422; --muted:#5d6b67; --line:#d8dfdb; --lagon:#0e8f8a;
+  --display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body:"Atkinson Hyperlegible", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark){:root{--bg:#121716;--paper:#1b2220;--ink:#e7ecea;--muted:#9aa8a3;--line:#2f3936;--lagon:#3cc2bb;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--body)}
+.wrap{max-width:1100px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+header{padding-block:20px 12px}
+h1{font:800 clamp(30px,6vw,52px)/1 var(--display);margin:0;letter-spacing:-.02em;text-wrap:balance}
+h1 span{color:var(--lagon)}
+.sub{color:var(--muted);margin:.4em 0 0}
+#map{height:clamp(300px,48vh,560px);border-radius:10px;border:1px solid var(--line)}
+.bar{margin:8px 0 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:13px}
+.bar button{font:700 13px var(--body);border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:99px;padding:7px 12px;cursor:pointer}
+.bar button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+#status{color:var(--muted);margin-left:auto}
+main{padding-block:12px 60px}
+.bases{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:18px 0}
+.base{background:var(--paper);border:1px solid var(--line);border-top:5px solid var(--c);border-radius:8px;padding:12px 14px}
+.base b{font:800 18px var(--display);display:block}
+.base span{font-size:14px;color:var(--muted)}
+.stage{margin:30px 0 8px;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+.stage h2{font:800 24px/1.1 var(--display);margin:0}
+.stage .nights{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.chip{display:inline-block;width:14px;height:14px;border-radius:4px;flex:none}
+.day{background:var(--paper);border:1px solid var(--line);border-left:5px solid var(--c);border-radius:8px;padding:14px 16px;margin:10px 0;cursor:pointer}
+.day:focus-visible,.day.on{outline:2px solid var(--c);outline-offset:2px}
+.day h3{margin:0 0 4px;font:700 17px var(--body)}
+.day .date{font:800 13px var(--display);color:var(--c);text-transform:uppercase;letter-spacing:.05em}
+.day p{margin:.35em 0}
+.bag{display:inline-block;font-size:12px;font-weight:700;border:1px solid var(--c);color:var(--c);border-radius:99px;padding:1px 9px;margin-left:6px;vertical-align:2px}
+.road{font:700 14px var(--body);color:var(--c);margin:.2em 0 .4em}
+.tag{font-size:14px;color:var(--muted)}
+.tag b{color:var(--ink)}
+.legs{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:6px}
+.box{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin:14px 0}
+.box h2{font:800 20px var(--display);margin:0 0 6px}
+.box ul{margin:.3em 0;padding-left:1.2em}
+.leaflet-popup-content{font:14px/1.4 var(--body)}
+.home{background:var(--c);color:#fff;border:2px solid #fff;border-radius:50%;width:26px!important;height:26px!important;display:grid;place-items:center;font:800 13px var(--display);box-shadow:0 1px 4px rgba(0,0,0,.4)}
+</style>
+</head>
+<body>
+<header class="wrap">
+  <h1>La Réunion <span>Sud et Ouest</span></h1>
+  <p class="sub">1er → 13 août 2027 · 2 adultes, 4 enfants (3, 12, 14, 16 ans), toujours ensemble · 4 nuits à Saint-Pierre, 8 nuits à L'Ermitage. Mafate vu d'en haut, les deux Pitons, le Trou de Fer, les tunnels de lave et le Voile de la Mariée. Temps de route indiqués à chaque jour.</p>
+</header>
+<div class="wrap">
+  <div id="map"></div>
+  <div class="bar">
+    <button id="bAll" aria-pressed="true">Tout le voyage</button>
+    <button id="bCar" aria-pressed="true">Routes</button>
+    <button id="bFoot" aria-pressed="true">Randos</button>
+    <button id="bDrag" aria-pressed="false" hidden>Déplacer la carte</button>
+    <button id="bGpx">Exporter GPX</button>
+    <span id="status">Calcul des tracés…</span>
+  </div>
+</div>
+<main class="wrap" id="main"></main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const P={
+ aero:[-20.8871,55.5163,"Aéroport Roland-Garros"],
+ stpierre:[-21.3393,55.4781,"Base 1 · Saint-Pierre"],
+ ermitage:[-21.0800,55.2245,"Base 2 · L'Ermitage"],
+ belouve:[-21.0700,55.5425,"Gîte de Bélouve"],
+ troufer:[-21.0755,55.5590,"Belvédère du Trou de Fer"],
+ passables:[-21.2120,55.6440,"Pas des Sables (Plaine des Sables)"],
+ bellecombe:[-21.2187,55.6886,"Pas de Bellecombe (2 311 m)"],
+ formica:[-21.2213,55.6986,"Formica Leo"],
+ dolomieu:[-21.2444,55.7139,"Cratère Dolomieu (≈2 500 m)"],
+ philippe:[-21.3590,55.7670,"Saint-Philippe (départ tunnels de lave)"],
+ capmechant:[-21.3735,55.7152,"Cap Méchant"],
+ gouffre:[-21.2705,55.3530,"Gouffre de l'Étang-Salé"],
+ maido:[-21.0717,55.3833,"Belvédère du Maïdo (2 205 m), vue sur Mafate"],
+ stpaul:[-21.0090,55.2700,"Marché forain de Saint-Paul"],
+ cilaos:[-21.1350,55.4720,"Cilaos"],
+ bloc:[-21.1220,55.4860,"Le Bloc (départ Piton des Neiges)"],
+ dufour:[-21.1090,55.4800,"Refuge de la Caverne Dufour (2 480 m)"],
+ piton:[-21.0985,55.4790,"Piton des Neiges (3 070 m)"],
+ dosdane:[-20.9800,55.3810,"Dos d'Âne"],
+ rvb:[-20.9890,55.3920,"Roche Verre Bouteille, vue sur Mafate"],
+ portgilles:[-21.0510,55.2230,"Port de Saint-Gilles (sortie baleines)"],
+ kelonia:[-21.1530,55.2830,"Kélonia, observatoire des tortues"],
+ leu:[-21.1700,55.2880,"Lagon de Saint-Leu"],
+ aigrettes:[-21.0540,55.2370,"Bassin des Aigrettes"],
+ voile:[-21.0366,55.5367,"Voile de la Mariée"],
+ hellbourg:[-21.0645,55.5195,"Hell-Bourg (déjeuner)"]
+};
+const HOMES=[["stpierre",0],["ermitage",1]];
+
+const S=[
+ {n:"Base 1",z:"Saint-Pierre",nights:"1 → 5 août · 4 nuits",c:"#c2410c",
+  why:"Le Sud et l'Est : Trou de Fer 1 h 15, volcan 1 h 15, tunnels 45 min."},
+ {n:"Base 2",z:"L'Ermitage",nights:"5 → 13 août · 8 nuits (dont 1 au refuge)",c:"#0e8f8a",
+  why:"Le plus grand lagon de l'île. Maïdo, Roche Verre Bouteille et Piton des Neiges depuis ici, puis la semaine calme."}
+];
+
+const D=[
+ {s:0,d:"Dim. 1er août",t:"Arrivée à Saint-Pierre",road:"Aéroport → Saint-Pierre ≈ 1 h 10",
+  txt:"Arrivée le matin, route par la côte Ouest. Installation, sieste, premier bain dans le lagon de Saint-Pierre. Coucher tôt.",
+  ado:"Repérer le premier poisson-clown du lagon.",
+  legs:[{m:"car",p:["aero","stpierre"]}]},
+ {s:0,d:"Lun. 2 août",t:"Le Trou de Fer",road:"Saint-Pierre → Bélouve ≈ 1 h 15 (aller) · ≈ 1 h 15 (retour)",
+  txt:"Route par Le Tampon, la Plaine des Cafres et la Plaine-des-Palmistes jusqu'au domaine de Bélouve. Boucle du Trou de Fer dans la forêt de tamarins : 8 km, 150 m de dénivelé, 3 h, jusqu'au belvédère sur le gouffre où tombent six cascades. Retour pour le goûter.",
+  ado:"Compter les cascades du Trou de Fer depuis le belvédère.",
+  legs:[{m:"car",p:["stpierre","belouve"]},{m:"foot",p:["belouve","troufer","belouve"],lab:"Boucle du Trou de Fer · 8 km · +150 m · 3 h"},{m:"car",p:["belouve","stpierre"]}]},
+ {s:0,d:"Mar. 3 août",t:"Le Piton de la Fournaise",road:"Saint-Pierre → Pas de Bellecombe ≈ 1 h 15 (aller) · ≈ 1 h 15 (retour)",
+  txt:"Départ 5 h, les nuages montent vers 11 h. Traversée de la Plaine des Sables. Tous ensemble jusqu'au cratère Dolomieu : 11,5 km aller-retour, 530 m de dénivelé, 5 h 30, avec une pause au Formica Leo. Polaire et bonnet pour la petite au départ, il fait 5 à 10 °C. Vérifier la veille que l'enclos est ouvert (site de l'OVPF ou de la préfecture). Après-midi sieste et lagon.",
+  ado:"Regarder au fond d'un des cratères les plus actifs du monde.",
+  legs:[{m:"car",p:["stpierre","passables","bellecombe"]},{m:"foot",p:["bellecombe","formica","dolomieu"],lab:"Bellecombe → cratère Dolomieu · 11,5 km AR · +530 m · 5 h 30"},{m:"car",p:["bellecombe","stpierre"]}]},
+ {s:0,d:"Mer. 4 août",t:"Tunnel de lave et Sud sauvage",road:"Saint-Pierre → Saint-Philippe ≈ 45 min · Cap Méchant → Saint-Pierre ≈ 40 min",
+  txt:"Visite guidée d'un tunnel de lave à Saint-Philippe le matin, en formule famille sans passages à ramper (casque et frontale fournis). Pique-nique au Cap Méchant face aux vagues. Après-midi au lagon.",
+  ado:"Marcher dans un tube où coulait de la lave.",
+  legs:[{m:"car",p:["stpierre","philippe","capmechant","stpierre"]}]},
+ {s:1,d:"Jeu. 5 août",t:"Vers L'Ermitage",road:"Saint-Pierre → Gouffre de l'Étang-Salé ≈ 20 min · Gouffre → L'Ermitage ≈ 35 min",bag:"Changement de base",
+  txt:"Journée tranquille. Arrêt au Gouffre de l'Étang-Salé, où la houle explose dans la roche, et sur la plage de sable noir. Installation à L'Ermitage et après-midi au lagon.",
+  ado:"Rapporter un peu de sable noir.",
+  legs:[{m:"car",p:["stpierre","gouffre","ermitage"]}]},
+ {s:1,d:"Ven. 6 août",t:"Lever de soleil sur Mafate, marché créole",road:"L'Ermitage → Maïdo ≈ 1 h · Maïdo → Saint-Paul ≈ 50 min · Saint-Paul → L'Ermitage ≈ 15 min",
+  txt:"Départ 5 h pour voir le soleil se lever sur tout le cirque de Mafate depuis le belvédère du Maïdo, à 2 205 m. Petit-déj là-haut. En redescendant, marché forain de Saint-Paul (le vendredi matin) : samoussas, letchis, vanille. Après-midi au lagon.",
+  ado:"Repérer les îlets de Mafate depuis le belvédère.",
+  legs:[{m:"car",p:["ermitage","maido","stpaul","ermitage"]}]},
+ {s:1,d:"Sam. 7 août",t:"Montée au refuge de la Caverne Dufour",road:"L'Ermitage → Le Bloc (Cilaos) ≈ 1 h 45",bag:"Valises à L'Ermitage",
+  txt:"Départ 9 h, route de Cilaos et ses 400 virages, déjeuner au village. Départ du Bloc vers 12 h 30 : 3 h de montée, 1 100 m de dénivelé, arrivée vers 16 h. Dîner au refuge, coucher tôt. Il gèle la nuit à 2 480 m : sac de couchage grand froid pour la petite.",
+  ado:"Dormir à 2 480 m.",
+  legs:[{m:"car",p:["ermitage","cilaos","bloc"]},{m:"foot",p:["bloc","dufour"],lab:"Le Bloc → Caverne Dufour · +1 100 m · 3 h"}]},
+ {s:1,d:"Dim. 8 août",t:"Lever de soleil à 3 070 m",road:"Le Bloc → L'Ermitage ≈ 1 h 45",
+  txt:"Réveil 3 h 30, décision à ce moment-là selon la nuit de la petite. Montée de 1 h 30 à la frontale jusqu'au sommet du Piton des Neiges pour le lever du soleil sur les trois cirques, Mafate compris. Descente jusqu'au Bloc vers midi (environ 3 h 30), retour à L'Ermitage. La partie aventure est finie.",
+  ado:"Voir l'ombre du Piton se projeter sur la mer au lever du soleil.",
+  legs:[{m:"foot",p:["dufour","piton","bloc"],lab:"Caverne Dufour → sommet → Le Bloc · ≈5 h"},{m:"car",p:["bloc","ermitage"]}]},
+ {s:1,d:"Lun. 9 août",t:"Rien",road:"Pas de voiture",
+  txt:"Grasse matinée, lagon, sieste, lagon. Le seul programme de la journée : ne pas toucher la voiture.",
+  ado:"Rattraper le sommeil de la nuit au refuge.",
+  legs:[]},
+ {s:1,d:"Mar. 10 août",t:"Roche Verre Bouteille, Mafate à vos pieds",road:"L'Ermitage → Dos d'Âne ≈ 45 min (aller) · ≈ 45 min (retour)",
+  txt:"Boucle de Roche Verre Bouteille au départ de Dos d'Âne : 3 km, 370 m de dénivelé, 1 h 30. Elle mène à un balcon au-dessus de Mafate, avec vue plongeante sur les îlets et la Rivière des Galets. Partir tôt avant les nuages. Après-midi au lagon.",
+  ado:"Trouver la Roche Verre Bouteille et deviner d'où vient son nom.",
+  legs:[{m:"car",p:["ermitage","dosdane"]},{m:"foot",p:["dosdane","rvb","dosdane"],lab:"Boucle Roche Verre Bouteille · 3 km · +370 m · 1 h 30"},{m:"car",p:["dosdane","ermitage"]}]},
+ {s:1,d:"Mer. 11 août",t:"Baleines, ou jour de secours",road:"L'Ermitage → port de Saint-Gilles ≈ 10 min",
+  txt:"Si un sommet a été raté à cause des nuages, c'est le jour pour y retourner : Cilaos à 1 h 45, volcan à environ 2 h. Sinon : sortie baleines le matin depuis le port de Saint-Gilles avec un opérateur labellisé (août est la pleine saison), puis lagon.",
+  ado:"Entendre le souffle d'une baleine.",
+  legs:[{m:"car",p:["ermitage","portgilles","ermitage"]}]},
+ {s:1,d:"Jeu. 12 août",t:"Tortues et bassins",road:"L'Ermitage → Saint-Leu ≈ 20 min · Saint-Leu → Bassin des Aigrettes ≈ 25 min",
+  txt:"Kélonia le matin, puis masque et tuba avec les tortues dans le lagon de Saint-Leu. Fin d'après-midi au Bassin des Aigrettes, puis dernier carri en famille au coucher du soleil.",
+  ado:"Nager à côté d'une tortue sans la toucher.",
+  legs:[{m:"car",p:["ermitage","kelonia","leu","aigrettes","ermitage"]}]},
+ {s:1,d:"Ven. 13 août",t:"Le Voile de la Mariée, puis l'envol",road:"L'Ermitage → Voile de la Mariée ≈ 1 h 45 · Voile → Hell-Bourg ≈ 15 min · Hell-Bourg → aéroport ≈ 1 h 15",
+  txt:"Départ en milieu de matinée, valises dans la voiture. Montée dans le cirque de Salazie, arrêt au Voile de la Mariée, la grande cascade qui tombe du rempart au bord de la route. Déjeuner créole à Hell-Bourg et tour du village. Redescente vers l'aéroport, restitution de la voiture et vol de nuit.",
+  ado:"Compter les cascades visibles depuis la route de Salazie.",
+  legs:[{m:"car",p:["ermitage","voile","hellbourg","aero"]}]}
+];
+
+const map=L.map('map',{scrollWheelZoom:false,dragging:!L.Browser.mobile,tap:false}).setView([-21.11,55.53],10);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© contributeurs OpenStreetMap'}).addTo(map);
+const carLayer=L.layerGroup().addTo(map), footLayer=L.layerGroup().addTo(map), mk=L.layerGroup().addTo(map);
+const used=new Set(); D.forEach(d=>d.legs.forEach(l=>l.p.forEach(k=>used.add(k))));
+const homeKeys=HOMES.map(h=>h[0]);
+used.forEach(k=>{if(homeKeys.includes(k))return;const[a,b,n]=P[k];L.circleMarker([a,b],{radius:5,color:'#1b2422',weight:2,fillColor:'#fff',fillOpacity:1}).bindPopup('<b>'+n+'</b>').addTo(mk)});
+HOMES.forEach(([k,i])=>{const s=S[i];L.marker([P[k][0],P[k][1]],{zIndexOffset:1000,icon:L.divIcon({className:'',html:`<div class="home" style="--c:${s.c}">${i+1}</div>`,iconSize:[26,26],iconAnchor:[13,13]})}).bindPopup('<b>'+s.n+' · '+s.z+'</b><br>'+s.nights).addTo(mk)});
+
+if(L.Browser.mobile){const b=document.getElementById('bDrag');b.hidden=false;b.onclick=()=>{const on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',on);b.textContent=on?'Bloquer la carte':'Déplacer la carte';on?map.dragging.enable():map.dragging.disable()}}
+
+const ROUTER={car:'https://routing.openstreetmap.de/routed-car/route/v1/driving/',foot:'https://routing.openstreetmap.de/routed-foot/route/v1/driving/'};
+const fmtKm=m=>(m/1000).toFixed(1).replace('.',',')+' km';
+const fmtT=s=>{const h=Math.floor(s/3600),m=Math.round(s%3600/60);return (h?h+' h ':'')+String(m).padStart(h?2:1,'0')+' min'};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let done=0,total=0,fails=0;
+D.forEach(d=>d.legs.forEach(l=>{if(!l.dup)total++}));
+
+async function route(leg){
+  const coords=leg.p.map(k=>P[k][1]+','+P[k][0]).join(';');
+  for(let i=0;i<3;i++){
+    try{
+      const r=await fetch(ROUTER[leg.m]+coords+'?overview=full&geometries=geojson');
+      if(!r.ok) throw 0;
+      const j=await r.json(); if(j.code!=='Ok') throw 0;
+      return {geo:j.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]),dist:j.routes[0].distance,dur:j.routes[0].duration,ok:1};
+    }catch(e){await sleep(800*(i+1))}
+  }
+  return {geo:leg.p.map(k=>[P[k][0],P[k][1]]),ok:0};
+}
+
+const lines=[];
+function style(leg,c,hi){return leg.m==='car'?{color:c,weight:hi?6:4,opacity:hi?1:.75}:{color:c,weight:hi?6:4,opacity:1,dashArray:'2 8',lineCap:'round'}}
+
+async function build(){
+  for(let di=0;di<D.length;di++){
+    const d=D[di],c=S[d.s].c;
+    for(const leg of d.legs){
+      if(leg.dup){leg.res=D[di-1].legs.find(x=>x.m==='foot').res;renderLegs(di);continue}
+      leg.res=await route(leg); done++; if(!leg.res.ok)fails++;
+      const g=L.polyline(leg.res.geo,style(leg,c)).addTo(leg.m==='car'?carLayer:footLayer);
+      g.bindPopup('<b>'+d.d+'</b><br>'+(leg.lab||leg.p.map(k=>P[k][2]).join(' → '))+(leg.res.ok?'<br>'+fmtKm(leg.res.dist)+(leg.m==='car'?' · '+fmtT(leg.res.dur):''):'<br><i>tracé approximatif</i>'));
+      g.on('click',()=>focusDay(di,false));
+      lines.push({di,g,leg});
+      document.getElementById('status').textContent='Tracés : '+done+'/'+total;
+      renderLegs(di);
+      await sleep(250);
+    }
+  }
+  document.getElementById('status').textContent=fails?fails+' tracé(s) approximatif(s), serveur OSM injoignable':'Tracés calculés sur OpenStreetMap';
+}
+
+const main=document.getElementById('main');
+let html='<div class="bases">'+S.map((s,i)=>`<div class="base" style="--c:${s.c}"><b>${i+1}. ${s.n} · ${s.z}</b><span>${s.nights}</span><p class="tag" style="margin:.4em 0 0">${s.why}</p></div>`).join('')+'</div>';
+let cur=-1;
+D.forEach((d,i)=>{
+  if(d.s!==cur){cur=d.s;const s=S[cur];
+    html+=`<div class="stage"><span class="chip" style="background:${s.c}"></span><h2>${s.n} · ${s.z}</h2><span class="nights">${s.nights}</span></div>`}
+  html+=`<article class="day" tabindex="0" id="d${i}" style="--c:${S[d.s].c}"><div class="date">${d.d}${d.eq?'<span class="bag">'+d.eq+'</span>':''}${d.bag?'<span class="bag">'+d.bag+'</span>':''}</div><h3>${d.t}</h3>${d.road?'<p class="road">🚗 '+d.road+'</p>':''}<p>${d.txt}</p><p class="tag"><b>Défi des ados :</b> ${d.ado}</p><div class="legs" id="l${i}"></div></article>`;
+});
+html+=`<section class="box"><h2>Pourquoi deux bases suffisent</h2><ul>
+<li>Sans nuit ni marche dans Mafate, Hell-Bourg n'est plus utile : Mafate se regarde d'en haut depuis le Maïdo (6 août), le Piton des Neiges (8 août) et Roche Verre Bouteille (10 août).</li>
+<li>Le Voile de la Mariée se fait le jour du départ, sur la route de l'aéroport : le vol est le soir.</li>
+<li>Saint-Pierre pour le Sud (Trou de Fer, volcan, tunnels), L'Ermitage pour le Piton des Neiges et le lagon.</li>
+<li>Les valises ne bougent qu'une fois, le 5 août.</li></ul></section>
+<section class="box"><h2>Temps de route sur le séjour</h2><ul>
+<li>Du 1er au 8 août : environ 14 h de voiture au total.</li>
+<li>Du 9 au 13 août : environ 5 h, dont 3 h le jour du départ avec le Voile de la Mariée.</li>
+<li>Temps indiqués hors bouchons. Aux heures de pointe, comptez 30 min de plus sur la route des Tamarins et autour de Saint-Denis.</li></ul></section>
+<section class="box"><h2>Le Piton des Neiges avec la petite</h2><ul>
+<li>Pour elle : sac de couchage enfant pour grand froid, sous-couches laine, bonnet, gants, chancelière pour le porte-bébé au sommet.</li>
+<li>Règle fixée d'avance : nuit agitée, vomissements ou petite inhabituellement grognon au réveil, on renonce au sommet et on redescend tous ensemble.</li></ul></section>
+<section class="box"><h2>À réserver en premier</h2><ul>
+<li>Refuge de la Caverne Dufour, nuit du 7 août, 6 lits : 02 62 90 78 78 ou 06 93 13 54 10. Nuit seule possible (20–21 € par personne), repas en option.</li>
+<li>Saint-Pierre du 1er au 5 août (4 nuits), L'Ermitage du 5 au 13 août (8 nuits, la nuit du 7 incluse).</li>
+<li>Tunnel de lave : trouver un opérateur qui accepte une enfant de 3 ans. Sortie baleines au départ de Saint-Gilles.</li>
+<li>Un 7 places long, ou un coffre de toit pour les valises.</li></ul></section>
+<p class="tag">Temps de route du texte : estimations hors bouchons. Les temps calculés sur OpenStreetMap s'affichent en bas de chaque jour quand la carte est chargée. Dénivelés et durées des randonnées repris de horizon-reunion.com. Vérifiez l'ouverture des sentiers (ONF) et de l'enclos du volcan avant chaque sortie.</p>`;
+main.innerHTML=html;
+
+function renderLegs(i){
+  const el=document.getElementById('l'+i); const parts=[];
+  D[i].legs.forEach(l=>{ if(!l.res)return;
+    const ic=l.m==='car'?'🚗':'🥾';
+    parts.push(l.res.ok?ic+' '+fmtKm(l.res.dist)+(l.m==='car'?' · '+fmtT(l.res.dur):''):ic+' tracé approx.')});
+  el.textContent=parts.join('   ');
+}
+
+function focusDay(i,scroll){
+  document.querySelectorAll('.day').forEach(e=>e.classList.toggle('on',e.id==='d'+i));
+  document.getElementById('bAll').setAttribute('aria-pressed',false);
+  const dupPrev=D[i].legs.some(l=>l.dup);
+  let b=null;
+  lines.forEach(o=>{const hi=o.di===i||(dupPrev&&o.di===i-1&&o.leg.m==='foot');
+    o.g.setStyle(Object.assign(style(o.leg,S[D[o.di].s].c,hi),{opacity:hi?1:.2}));
+    if(hi){o.g.bringToFront();b=b?b.extend(o.g.getBounds()):L.latLngBounds(o.g.getBounds().getSouthWest(),o.g.getBounds().getNorthEast())}});
+  if(b)map.fitBounds(b,{padding:[30,30],maxZoom:14});
+  if(scroll)document.getElementById('map').scrollIntoView({behavior:'smooth',block:'start'});
+}
+document.querySelectorAll('.day').forEach((e,i)=>{
+  e.addEventListener('click',()=>focusDay(i,true));
+  e.addEventListener('keydown',ev=>{if(ev.key==='Enter')focusDay(i,true)});
+});
+document.getElementById('bAll').onclick=()=>{document.getElementById('bAll').setAttribute('aria-pressed',true);document.querySelectorAll('.day').forEach(e=>e.classList.remove('on'));
+  lines.forEach(o=>o.g.setStyle(style(o.leg,S[D[o.di].s].c)));map.setView([-21.11,55.53],10)};
+function tog(id,layer){const b=document.getElementById(id);b.onclick=()=>{const on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',on);on?layer.addTo(map):map.removeLayer(layer)}}
+tog('bCar',carLayer);tog('bFoot',footLayer);
+
+document.getElementById('bGpx').onclick=()=>{
+  const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  let x='<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Reunion 2027" xmlns="http://www.topografix.com/GPX/1/1">\n';
+  used.forEach(k=>{x+=`<wpt lat="${P[k][0]}" lon="${P[k][1]}"><name>${esc(P[k][2])}</name></wpt>\n`});
+  lines.forEach(o=>{const d=D[o.di];x+=`<trk><name>${esc(d.d+' – '+(o.leg.m==='car'?'Route':'Rando')+' – '+(o.leg.lab||o.leg.p.map(k=>P[k][2]).join(' > ')))}</name><trkseg>`+o.leg.res.geo.map(p=>`<trkpt lat="${p[0].toFixed(6)}" lon="${p[1].toFixed(6)}"/>`).join('')+'</trkseg></trk>\n'});
+  x+='</gpx>';
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([x],{type:'application/gpx+xml'}));a.download='reunion-aout-2027.gpx';document.body.appendChild(a);a.click();a.remove();
+};
+build();
+</script>
+</body>
+</html>
