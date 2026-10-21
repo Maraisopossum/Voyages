@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<title>Madrid à pied, décembre 2026</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Roadbook, comme La Réunion : bandeau carmin du drapeau de Madrid avec ses 7 étoiles + plan d'ensemble, puis le carnet jour par jour (règles noires épaisses, tracés à pied, heures, tronçons). */
+:root{
+  --paper:#f1f2f3; --panel:#ffffff; --ink:#141517; --muted:#4c5257; --rule:#141517; --hair:#cdd2d5;
+  --mast:#b3122a; --onmast:#ffffff; --hi:#ffd23f;
+  --d1:#b3122a; --d2:#c25e00; --d3:#1d4fd8; --d4:#18794e; --d5:#7a3fc4; --metro:#1d4fd8;
+  --land:#eceeef; --park:#cfe3c6; --water:#a2cde2; --street:#ffffff; --case:#c4cacd; --maptext:#3a4146;
+  --ff-d:'Barlow Condensed','Arial Narrow',sans-serif; --ff-b:'Barlow','Helvetica Neue',Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0f1113; --panel:#171a1d; --ink:#eef0f1; --muted:#a6adb2; --rule:#eef0f1; --hair:#2c3237;
+  --mast:#8f0e22; --onmast:#ffffff;
+  --d1:#ff6b7d; --d2:#ffa24d; --d3:#7aa2ff; --d4:#4fcf94; --d5:#c19bff; --metro:#7aa2ff;
+  --land:#1b1f22; --park:#22392a; --water:#1e4658; --street:#3b4349; --case:#2a3034; --maptext:#c3cacf;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0f1113; --panel:#171a1d; --ink:#eef0f1; --muted:#a6adb2; --rule:#eef0f1; --hair:#2c3237;
+  --mast:#8f0e22; --onmast:#ffffff;
+  --d1:#ff6b7d; --d2:#ffa24d; --d3:#7aa2ff; --d4:#4fcf94; --d5:#c19bff; --metro:#7aa2ff;
+  --land:#1b1f22; --park:#22392a; --water:#1e4658; --street:#3b4349; --case:#2a3034; --maptext:#c3cacf;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font:17px/1.55 var(--ff-b);margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
+h1,h2,h3,h4{font-family:var(--ff-d);margin:0;text-wrap:balance;line-height:1.04}
+p{margin:.45rem 0}
+a{color:var(--ink);text-decoration-thickness:2px;text-underline-offset:3px;text-decoration-color:var(--d1)}
+:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+.mast{background:var(--mast);color:var(--onmast);border-bottom:6px solid var(--rule)}
+.mast-in{max-width:72rem;margin:0 auto;padding-block:1.4rem 1.2rem;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:1.4rem 2rem;align-items:start}
+.stars{display:flex;gap:.35rem;margin-bottom:.6rem}
+.stars svg{width:1.05rem;height:1.05rem;fill:var(--onmast)}
+.mast h1{font-size:clamp(3.6rem,13vw,6.6rem);font-weight:700;text-transform:uppercase;letter-spacing:-.005em}
+.dates{font:600 1.45rem/1.15 var(--ff-d);margin:.6rem 0 .8rem}
+.mast .lead{font-size:1.04rem;max-width:32rem}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:.25rem 1rem;margin:1rem 0 0;font-size:.95rem;border-top:2px solid var(--onmast);padding-top:.7rem}
+.facts dt{font:600 .95rem var(--ff-d);text-transform:uppercase;letter-spacing:.06em;opacity:.85}
+.facts dd{margin:0}
+.mast-m{min-width:0}
+.omap{display:block;width:100%;height:auto;max-height:82vh;border:3px solid var(--rule);background:var(--land)}
+.chips{display:flex;flex-wrap:wrap;gap:.35rem;margin:.6rem 0 .2rem}
+.chip{font:700 1rem var(--ff-d);text-transform:uppercase;letter-spacing:.04em;border:2px solid var(--rule);background:var(--panel);color:var(--ink);padding:.3rem .7rem;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem}
+.chip i{width:.8rem;height:.8rem;display:inline-block}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.mcap{font-size:.82rem;opacity:.9;margin:.2rem 0 0}
+
+.wrap{max-width:72rem;margin:0 auto;padding-block:0 4rem;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.ruler{display:flex;gap:2px;margin:1.2rem 0 0}
+.rseg{flex:1 1 0;min-width:0;padding:.45rem .6rem;color:#fff;border-top:3px solid var(--rule);display:flex;flex-direction:column;text-decoration:none}
+.rseg b{font:700 1.6rem var(--ff-d);line-height:1}
+.rseg span{font-size:.76rem;overflow-wrap:anywhere}
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;overflow-x:auto;background:var(--paper);border-bottom:2px solid var(--rule);margin-top:1rem}
+.nav a{white-space:nowrap;text-decoration:none;font:600 1.05rem var(--ff-d);text-transform:uppercase;letter-spacing:.04em;padding:.7rem .9rem}
+.nav a:hover{background:var(--hi);color:#141517}
+h2{font-size:2.4rem;font-weight:700;text-transform:uppercase;margin:3.4rem 0 1rem;padding-top:.5rem;border-top:6px solid var(--rule);scroll-margin-top:3.6rem}
+.lead2{max-width:46rem}
+.cap{font-size:.86rem;color:var(--muted);max-width:46rem}
+
+.day{scroll-margin-top:3.6rem;background:var(--panel);border:2px solid var(--rule);margin:.8rem 0}
+.day summary{display:grid;grid-template-columns:3.6rem minmax(0,1fr) auto;align-items:stretch;cursor:pointer;list-style:none}
+.day summary::-webkit-details-marker{display:none}
+.dn{display:grid;place-items:center;color:#fff;font:700 2.2rem var(--ff-d);min-height:3.8rem;background:var(--dc)}
+.dt{padding:.65rem .8rem;font:700 1.45rem var(--ff-d);line-height:1.08;align-self:center;min-width:0}
+.dr{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;padding:0 1rem;text-align:right}
+.dd{font:600 .9rem var(--ff-d);text-transform:uppercase;letter-spacing:.07em;color:var(--muted);white-space:nowrap}
+.dk{font:700 1.2rem var(--ff-d);white-space:nowrap}
+.day[open] summary{border-bottom:2px solid var(--rule)}
+.db{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:1.4rem;padding:1rem}
+.dleft,.dside{min-width:0}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.6rem}
+.steps li{display:grid;grid-template-columns:3.9rem 1.6rem minmax(0,1fr);gap:.5rem;font-size:.96rem;align-items:start}
+.tm{white-space:nowrap;font:700 1.1rem var(--ff-d);color:var(--dc);font-variant-numeric:tabular-nums;padding-top:.05rem}
+.pn{width:1.45rem;height:1.45rem;border-radius:50%;background:var(--dc);color:#fff;font:700 .85rem var(--ff-d);display:grid;place-items:center;margin-top:.1rem}
+.pn.metro{background:none;border:2px dashed var(--metro);color:var(--metro)}
+.steps b{font-weight:600}
+.steps .opt{color:var(--muted)}
+.ado{margin:1rem 0 0;padding:.6rem .8rem;border:2px solid var(--rule);background:var(--paper);font-size:.93rem}
+.ado strong{font:700 1rem var(--ff-d);text-transform:uppercase;letter-spacing:.05em;margin-right:.4rem}
+.dside{display:flex;flex-direction:column;gap:.7rem}
+.dmap{display:block;width:100%;height:auto;border:2px solid var(--rule);background:var(--land)}
+.legs{width:100%;border-collapse:collapse;font-size:.88rem;background:var(--panel);border:2px solid var(--rule)}
+.legs th{font:600 .82rem var(--ff-d);text-transform:uppercase;letter-spacing:.07em;background:var(--ink);color:var(--paper);text-align:left;padding:.35rem .6rem}
+.legs td{padding:.32rem .6rem;border-bottom:1px solid var(--hair);vertical-align:top}
+.legs td.k{text-align:right;white-space:nowrap;font:700 1.02rem var(--ff-d);font-variant-numeric:tabular-nums}
+.legs tfoot td{font:700 1.15rem var(--ff-d);border-top:2px solid var(--rule)}
+.gm{display:flex;align-items:center;justify-content:space-between;gap:.6rem;border:2px solid var(--rule);padding:.5rem .8rem;text-decoration:none;font:700 1.05rem var(--ff-d);text-transform:uppercase;letter-spacing:.04em;background:var(--panel)}
+.gm:hover{background:var(--hi);color:#141517}
+.gm span{font:500 .82rem var(--ff-b);text-transform:none;letter-spacing:0;color:var(--muted)}
+.gm:hover span{color:#141517}
+
+.tw{overflow-x:auto;margin:1rem 0}
+.tbl{width:100%;border-collapse:collapse;background:var(--panel);border:2px solid var(--rule);font-size:.93rem;min-width:36rem}
+.tbl th{font:600 .84rem var(--ff-d);text-transform:uppercase;letter-spacing:.08em;background:var(--ink);color:var(--paper);text-align:left;padding:.5rem .7rem}
+.tbl td{padding:.5rem .7rem;border-bottom:1px solid var(--hair);vertical-align:top}
+.tbl td:first-child{font-weight:600}
+.tbl td.w{white-space:nowrap;font:600 1rem var(--ff-d)}
+.callout{background:var(--hi);color:#141517;padding:.7rem 1rem;max-width:48rem;margin:1rem 0;border:2px solid #141517}
+.callout a{color:#141517}
+.metro{display:grid;grid-template-columns:repeat(auto-fit,minmax(17rem,1fr));gap:1rem}
+.mcard{background:var(--panel);border:2px solid var(--rule);padding:.8rem 1rem;min-width:0}
+.mcard h3{font-size:1.35rem;margin-bottom:.4rem}
+.line{display:flex;flex-direction:column;gap:.45rem;margin:.4rem 0;padding:0;list-style:none}
+.line li{display:grid;grid-template-columns:2.6rem minmax(0,1fr);gap:.5rem;align-items:center;font-size:.94rem}
+.lb{font:700 1rem var(--ff-d);color:#fff;text-align:center;padding:.1rem 0;border-radius:3px}
+.l8{background:#e5007d}.l10{background:#00519e}.l1{background:#38a3dc}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(16rem,1fr));gap:1rem}
+.note{background:var(--panel);border:2px solid var(--rule);padding:.8rem 1rem}
+.note h3{font-size:1.3rem;margin-bottom:.3rem}
+.note p{font-size:.93rem;margin:.3rem 0}
+.src{font-size:.84rem;color:var(--muted);columns:2 18rem;column-gap:2rem}
+.src a{display:block;break-inside:avoid;padding:.1rem 0;color:var(--muted)}
+footer{margin-top:2.5rem;border-top:2px solid var(--rule);padding-top:.8rem;font-size:.84rem;color:var(--muted)}
+
+/* map drawing */
+.m-park{fill:var(--park)} .m-water{fill:none;stroke:var(--water);stroke-width:12;stroke-linecap:round;stroke-linejoin:round}
+.m-case{fill:none;stroke:var(--case);stroke-linecap:round;stroke-linejoin:round}
+.m-st{fill:none;stroke:var(--street);stroke-linecap:round;stroke-linejoin:round}
+.m-lab{fill:var(--maptext);font-family:var(--ff-d);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.m-halo{fill:none;stroke:var(--panel);stroke-linecap:round;stroke-linejoin:round}
+.m-rt{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.m-metro{fill:none;stroke:var(--metro);stroke-width:4;stroke-dasharray:2 7;stroke-linecap:round}
+.m-pin{stroke:var(--panel);stroke-width:3}
+.m-pn{fill:#fff;font-family:var(--ff-d);font-weight:700;text-anchor:middle;dominant-baseline:central}
+.m-home{fill:var(--ink);stroke:var(--panel);stroke-width:3}
+.m-hl{fill:var(--paper);font-family:var(--ff-d);font-weight:700;text-anchor:middle;dominant-baseline:central}
+.m-plab{fill:var(--ink);font-family:var(--ff-b);font-weight:600;paint-order:stroke;stroke:var(--panel);stroke-width:4px;stroke-linejoin:round}
+.m-attr{fill:var(--maptext);font-family:var(--ff-b);opacity:.8}
+.omap .rg{transition:opacity .2s}
+.omap.hl .rg{opacity:.15}.omap.hl .rg.on{opacity:1}
+
+@media (max-width:860px){.mast-in{grid-template-columns:1fr}.db{grid-template-columns:1fr}}
+@media (max-width:560px){
+  h2{font-size:2rem}
+  .day summary{grid-template-columns:3rem minmax(0,1fr)}
+  .dn{grid-row:1/3;font-size:1.9rem}
+  .dr{grid-column:2;flex-direction:row;gap:.8rem;align-items:baseline;justify-content:flex-start;padding:0 .8rem .55rem;text-align:left}
+  .steps li{grid-template-columns:3.6rem 1.5rem minmax(0,1fr)}
+  .rseg b{font-size:1.25rem}.rseg span{font-size:.68rem}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+<style>
+:root{--tilefilter:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--tilefilter:brightness(.72) invert(1) contrast(.88) hue-rotate(180deg) saturate(.6)}}
+:root[data-theme="dark"]{--tilefilter:brightness(.72) invert(1) contrast(.88) hue-rotate(180deg) saturate(.6)}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.omap{height:clamp(380px,72vh,720px)}
+.dmap{aspect-ratio:3/2;max-width:100%}
+.omap,.dmap{position:relative;z-index:0;isolation:isolate}
+.leaflet-container{font-family:var(--ff-b);background:var(--land)}
+.leaflet-tile-pane{filter:var(--tilefilter)}
+.pinN,.pinH{display:grid;place-items:center;width:26px;height:26px;font:700 14px var(--ff-d);color:#fff;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.pinN{border-radius:50%}
+.pinH{background:#141517;border-radius:2px}
+.tipL{font:600 13px var(--ff-b);padding:1px 6px;border-radius:2px;box-shadow:none;border:1px solid #141517;background:#fff;color:#141517}
+.tipL::before{display:none}
+.rstat{margin:-.3rem 0 0}
+</style>
+</head>
+<body>
+
+
+<header class="mast">
+  <div class="mast-in">
+    <div>
+      <div class="stars" aria-hidden="true" id="stars"></div>
+      <h1>Madrid</h1>
+      <p class="dates">Sam. 26 → mer. 30 décembre 2026<br>À six, tout à pied</p>
+      <p class="lead">Quatre jours et demi depuis Tirso de Molina : lumières de Noël, Rastro et Palais royal, la route du Professeur jusqu'au Bernabéu, Prado et Retiro, puis Guernica avant l'avion. Chaque jour a son plan, ses heures et ses tronçons à pied. Touche un jour pour le voir sur le plan.</p>
+      <dl class="facts">
+        <dt>Arrivée</dt><dd>sam. 26 · atterrissage 14 h 55</dd>
+        <dt>Départ</dt><dd>mer. 30 · vol 15 h 45</dd>
+        <dt>Logement</dt><dd>Tirso de Molina, à 550 m du Kilómetro Cero</dd>
+        <dt>À pied</dt><dd id="factKm">≈ 40 km sur le séjour</dd>
+        <dt>Météo</dt><dd>3 à 11 °C, souvent sec · nuit vers 17 h 55</dd>
+      </dl>
+    </div>
+    <div class="mast-m">
+      <div class="omap" id="omap" role="region" aria-label="Carte d'ensemble des cinq journées à pied"></div>
+      <div class="chips" id="chips"></div>
+      <p class="mcap">Itinéraires à pied calculés sur les rues d'OpenStreetMap. Le guidage pas à pas est dans les liens Google Maps de chaque jour.</p>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="ruler" id="ruler"></div>
+  <nav class="nav" aria-label="Sections">
+    <a href="#jours">Jours</a><a href="#reserver">À réserver</a><a href="#aeroport">Aéroport</a><a href="#pratique">Pratique</a><a href="#sources">Sources</a>
+  </nav>
+
+  <h2 id="jours">Le carnet</h2>
+  <p class="lead2">Rythme soutenu, comme demandé : 9 à 13 km les journées pleines, plus deux heures debout au Palais ou au musée, avec des aires de jeux placées sur le chemin pour la petite. Les heures supposent une marche à 4 km/h avec poussette.</p>
+  <div id="days"></div>
+
+  <h2 id="reserver">À réserver</h2>
+  <p class="lead2">Quatre billets à prendre à l'avance, dans cet ordre. Le Real Madrid ne joue pas à domicile entre le 20 décembre et le 2 janvier, donc vestiaires et pelouse seront ouverts pendant le Tour.</p>
+  <div class="tw"><table class="tbl">
+    <thead><tr><th>Quoi</th><th>Quand</th><th>Tarif</th><th>Où réserver</th></tr></thead>
+    <tbody>
+      <tr><td>Tour Bernabéu « Classic »</td><td class="w">lun. 28 · 11 h</td><td>dès 37 € par adulte en ligne. Tarif enfant réduit, gratuit avant 5 ans (à confirmer au moment de réserver). Plus cher au guichet.</td><td><a href="https://www.realmadrid.com/entradas/tour-bernabeu" target="_blank" rel="noopener">realmadrid.com</a></td></tr>
+      <tr><td>Palais royal</td><td class="w">dim. 27 · 13 h 30</td><td>18 € par adulte, 9 € de 5 à 16 ans. Le dimanche, dernier accès à 15 h.</td><td><a href="https://www.patrimonionacional.es" target="_blank" rel="noopener">patrimonionacional.es</a></td></tr>
+      <tr><td>Musée du Prado</td><td class="w">mar. 29 · 10 h</td><td>15 € par adulte, gratuit pour les moins de 18 ans.</td><td><a href="https://www.museodelprado.es" target="_blank" rel="noopener">museodelprado.es</a></td></tr>
+      <tr><td>Musée Reina Sofía</td><td class="w">mer. 30 · 10 h</td><td>12 € par adulte, gratuit pour les moins de 18 ans. Fermé le mardi.</td><td><a href="https://www.museoreinasofia.es" target="_blank" rel="noopener">museoreinasofia.es</a></td></tr>
+      <tr><td>Billy Brunch &amp; Family</td><td class="w">dim. 27 · 9 h 30</td><td>Pas de réservation possible : arrivez à l'ouverture.</td><td><a href="https://billybrunch.com/madrid/" target="_blank" rel="noopener">billybrunch.com</a></td></tr>
+      <tr><td>Barques du Retiro</td><td class="w">mar. 29</td><td>6 € la barque en semaine, 4 personnes max : prévoir 2 barques.</td><td>Sur place, ou appli Madrid Móvil</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="aeroport">Aéroport en métro</h2>
+  <p class="lead2">La ligne 8 dessert toutes les terminales de Barajas, celle de votre vol aussi. Deux correspondances, mais vous sortez à Tirso de Molina, à 50 m du logement. Comptez environ 50 minutes.</p>
+  <div class="metro">
+    <div class="mcard">
+      <h3>Sam. 26 · aller vers le logement</h3>
+      <ul class="line">
+        <li><span class="lb l8">L8</span><span>Aeropuerto → <b>Nuevos Ministerios</b> (environ 20 min)</span></li>
+        <li><span class="lb l10">L10</span><span>dir. Puerta del Sur → <b>Tribunal</b> (3 stations)</span></li>
+        <li><span class="lb l1">L1</span><span>dir. Valdecarros → <b>Tirso de Molina</b> (3 stations)</span></li>
+      </ul>
+      <p class="cap">Départ visé vers 15 h 40, arrivée vers 16 h 40.</p>
+    </div>
+    <div class="mcard">
+      <h3>Mer. 30 · retour vers l'avion</h3>
+      <ul class="line">
+        <li><span class="lb l1">L1</span><span>Tirso de Molina, dir. Pinar de Chamartín → <b>Tribunal</b></span></li>
+        <li><span class="lb l10">L10</span><span>dir. Hospital Infanta Sofía → <b>Nuevos Ministerios</b></span></li>
+        <li><span class="lb l8">L8</span><span>→ <b>Aeropuerto</b>, descendre à votre terminal</span></li>
+      </ul>
+      <p class="cap">Départ du logement à 12 h 20, aéroport vers 13 h 15, 2 h 30 avant le vol.</p>
+    </div>
+    <div class="mcard">
+      <h3>Billets</h3>
+      <p>Environ 5 € par personne et par trajet : le billet plus un supplément aéroport de 3 €. La petite voyage gratuitement (moins de 4 ans). Il faut une carte Multi rechargeable, vendue aux distributeurs (2,50 €).</p>
+      <p class="cap">Escalators partout, ascenseurs pas dans toutes les correspondances : poussette pliée dans les escaliers.</p>
+    </div>
+  </div>
+
+  <h2 id="pratique">Pratique</h2>
+  <div class="notes">
+    <div class="note"><h3>Le Rastro, dimanche</h3><p>Le marché aux puces occupe la Ribera de Curtidores de 9 h à 15 h. Vers midi, c'est très dense : porte-bébé plutôt que poussette, sacs devant.</p></div>
+    <div class="note"><h3>Fêtes</h3><p>Le marché de Noël de la Plaza Mayor tient jusqu'au 31 décembre (dates 2026 pas encore publiées). Cortylandia joue à 12, 13, 14 h puis de 17 à 21 h, chaque heure, 15 min.</p></div>
+    <div class="note"><h3>Heures espagnoles</h3><p>On déjeune vers 14 h et on dîne rarement avant 20 h 30. Les tapas permettent de manger plus tôt avec la petite.</p></div>
+    <div class="note"><h3>La Casa de Papel</h3><p>La « Banque d'Espagne » de la série est en réalité la façade d'un ministère à Nuevos Ministerios, et la « Fábrica de Moneda » est le siège du CSIC, Calle Serrano. Les deux sont sur la route du lundi, avec le vrai Banco de España.</p></div>
+    <div class="note"><h3>Repères</h3><p>Le Kilómetro Cero, au sol devant la Real Casa de Correos à Sol, est le point de départ des routes d'Espagne. Le logement est à 7 minutes à pied.</p></div>
+    <div class="note"><h3>Les tracés</h3><p>Les itinéraires sont calculés à l'ouverture de la page sur les rues d'OpenStreetMap (service OSRM), puis gardés dans le navigateur. Pour le pas à pas, utilisez le lien Google Maps de chaque jour.</p></div>
+  </div>
+
+  <h2 id="sources">Sources</h2>
+  <div class="src">
+    <a href="https://www.realmadrid.com/entradas/tour-bernabeu" target="_blank" rel="noopener">Real Madrid · Tour Bernabéu (horaires, tarifs)</a>
+    <a href="https://www.realmadrid.com/es-ES/noticias/futbol/primer-equipo/actualidad/el-calendario-del-real-madrid-para-la-liga-2026-27-30-06-2026" target="_blank" rel="noopener">Real Madrid · calendrier de Liga 2026-27</a>
+    <a href="https://billybrunch.com/madrid/" target="_blank" rel="noopener">Billy Brunch · adresses de Madrid</a>
+    <a href="https://lamaletainquieta.com/?p=4752" target="_blank" rel="noopener">La Maleta Inquieta · Palais royal 2026</a>
+    <a href="https://lamaletainquieta.com/prado-en-2-horas/" target="_blank" rel="noopener">La Maleta Inquieta · Prado 2026</a>
+    <a href="https://lamaletainquieta.com/?p=4760" target="_blank" rel="noopener">La Maleta Inquieta · Reina Sofía 2026</a>
+    <a href="https://lamaletainquieta.com/?p=5043" target="_blank" rel="noopener">La Maleta Inquieta · aéroport → centre</a>
+    <a href="https://crtm.es/billetes-y-tarifas/tarjeta-multi/?lang=en" target="_blank" rel="noopener">CRTM · carte Multi et gratuité enfants</a>
+    <a href="https://www.madridhappypeople.com/ocio-madrid/barcas-del-parque-del-retiro/" target="_blank" rel="noopener">Madrid Happy People · barques du Retiro</a>
+    <a href="https://www.timeout.es/madrid/es/tiendas/mercado-de-navidad-en-la-plaza-mayor" target="_blank" rel="noopener">Time Out · marché de Noël de la Plaza Mayor</a>
+    <a href="https://www.esmadrid.com/agenda/cortylandia-el-corte-ingles-preciados-callao" target="_blank" rel="noopener">esMadrid · Cortylandia</a>
+    <a href="https://www.esmadrid.com/en/money-heist" target="_blank" rel="noopener">esMadrid · lieux de tournage de La Casa de Papel</a>
+    <a href="https://thebettervacation.com/es/Madrid/entradas-tour-bernabeu/" target="_blank" rel="noopener">The Better Vacation · Tour Bernabéu, tarifs enfants</a>
+  </div>
+  <footer>Préparé le 21 octobre 2026. Horaires et tarifs relevés en octobre 2026 : vérifiez-les la semaine du départ.</footer>
+</div>
+
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+(function(){
+const P={
+ home:[40.41214,-3.70431,"Logement"],
+ benav:[40.41465,-3.70320],
+ pmayor:[40.41553,-3.70742,"Plaza Mayor"],
+ smiguel:[40.41543,-3.70897,"San Miguel"],
+ sol:[40.41686,-3.70350,"Puerta del Sol"],
+ cortyl:[40.41850,-3.70540,"Cortylandia"],
+ callao:[40.42010,-3.70590,"Callao"],
+ rsluis:[40.41970,-3.70170,"Red de San Luis"],
+ sangines:[40.41705,-3.70660,"San Ginés"],
+ billy:[40.40870,-3.71050,"Billy Brunch & Family"],
+ cascorro:[40.41080,-3.70700,"Cascorro"],
+ rastro:[40.40640,-3.70870,"Rastro"],
+ ptoledo:[40.40670,-3.71140,"Puerta de Toledo"],
+ mrio:[40.40210,-3.71420,"Madrid Río"],
+ psegovia:[40.41420,-3.71990,"Puente de Segovia"],
+ almudena:[40.41570,-3.71440,"Almudena"],
+ palacio:[40.41730,-3.71380,"Palais royal"],
+ oriente:[40.41860,-3.71200,"Plaza de Oriente"],
+ sabatini:[40.42050,-3.71320,"Sabatini"],
+ pespana:[40.42330,-3.71230,"Plaza de España"],
+ debod:[40.42400,-3.71770,"Temple de Debod"],
+ cavabaja:[40.41250,-3.70900,"Cava Baja"],
+ bancoesp:[40.41857,-3.69445,"Banco de España"],
+ cibeles:[40.41930,-3.69310,"Cibeles"],
+ colon:[40.42530,-3.69060,"Colón"],
+ csic:[40.44070,-3.68780,"CSIC"],
+ fomento:[40.44470,-3.69250,"Nuevos Ministerios"],
+ bernabeu:[40.45380,-3.68850,"Bernabéu"],
+ olavide:[40.43210,-3.70120,"Olavide"],
+ billyf:[40.42560,-3.70160,"Billy Brunch Fuencarral"],
+ dosmayo:[40.42690,-3.70440,"Dos de Mayo"],
+ santaana:[40.41470,-3.70060,"Santa Ana"],
+ prado:[40.41390,-3.69170,"Prado"],
+ felipe:[40.41570,-3.68800,"Felipe IV"],
+ estanque:[40.41800,-3.68330,"Estanque"],
+ cristal:[40.41380,-3.68170,"Palacio de Cristal"],
+ angel:[40.40960,-3.68250,"Ángel Caído"],
+ fnmt:[40.42350,-3.67060,"FNMT"],
+ serrano:[40.43200,-3.68720,"Calle Serrano"],
+ palcala:[40.41998,-3.68875,"Puerta de Alcalá"],
+ neptuno:[40.41530,-3.69400,"Neptuno"],
+ reina:[40.40820,-3.69450,"Reina Sofía"],
+ caixa:[40.41100,-3.69350,"CaixaForum"],
+ antonm:[40.41180,-3.69900,"Antón Martín"],
+ tirso:[40.41229,-3.70462],
+ airport:[40.4917,-3.5933],nmin:[40.4462,-3.6920],tribunal:[40.4262,-3.7012]
+};
+/* --- les jours --- */
+const DAYS=[
+{n:1,c:"--d1",date:"Sam. 26 déc.",t:"Lumières de Noël",
+ route:["home","tirso","benav",[40.4149,-3.7058],"pmayor","smiguel",[40.4160,-3.7065],"sol","cortyl","callao","rsluis",[40.4182,-3.7025],"sol",[40.4172,-3.7055],"sangines","pmayor",[40.4140,-3.7076],[40.4135,-3.7055],"tirso","home"],
+ metro:[["airport","nmin","tribunal","tirso"],"in"],
+ gm:["home","pmayor","sol","cortyl","callao","sangines","home"],
+ steps:[
+  ["14:55",null,"<b>Atterrissage à Barajas</b>, récupération des bagages."],
+  ["15:40","M","<b>Métro L8 → L10 → L1</b> jusqu'à Tirso de Molina, environ 50 min (détail plus bas)."],
+  ["16:40","home","<b>Logement</b> à 50 m de la sortie. Installation, goûter."],
+  ["17:30","pmayor","<b>Plaza Mayor</b> et son marché de Noël : santons, perruques et farces de fin d'année."],
+  ["17:55","smiguel","<b>Mercado de San Miguel</b> en passant, puis la Calle Mayor."],
+  ["18:15","sol","<b>Puerta del Sol</b> : plaque du Kilómetro Cero, l'Ours et l'Arbousier."],
+  ["18:50","cortyl","<b>Cortylandia</b>, façade animée d'El Corte Inglés, Calle de Preciados. Séance gratuite de 19 h, 15 min."],
+  ["19:20","callao","<b>Callao et la Gran Vía</b> illuminée jusqu'à la Red de San Luis."],
+  ["19:50","sangines","<b>Chocolate con churros</b> à San Ginés. Il y a souvent la queue pendant les fêtes."],
+  ["20:30","home","Retour au logement par la Plaza Mayor."]],
+ ado:"Trouver la plaque du Kilómetro Cero sur le trottoir de Sol et y poser un pied."},
+{n:2,c:"--d2",date:"Dim. 27 déc.",t:"Brunch, Rastro et Palais royal",
+ route:["home","tirso","cascorro",[40.4098,-3.7097],"billy",[40.4078,-3.7092],"rastro",[40.4086,-3.7080],"cascorro",[40.4070,-3.7092],"ptoledo",[40.4045,-3.7128],"mrio",[40.4060,-3.7172],[40.4100,-3.7190],"psegovia",[40.4148,-3.7170],"almudena","palacio","oriente","sabatini","pespana",[40.4238,-3.7150],"debod",[40.4236,-3.7140],"pespana",[40.4200,-3.7127],[40.4158,-3.7133],[40.4156,-3.7105],[40.4140,-3.7085],"cavabaja",[40.4112,-3.7090],"cascorro","tirso","home"],
+ gm:["home","billy","rastro","mrio","psegovia","palacio","pespana","debod","cavabaja","home"],
+ steps:[
+  ["09:15","home","Départ par la Plaza de Cascorro."],
+  ["09:30","billy","<b>Billy Brunch &amp; Family</b>, Calle de Toledo 82, à l'ouverture. Pas de réservation, et le dimanche du Rastro ça se remplit vite."],
+  ["10:45","rastro","<b>Le Rastro</b>, marché aux puces du dimanche (9 h–15 h). On remonte la Ribera de Curtidores jusqu'à Cascorro."],
+  ["12:00","ptoledo","<b>Puerta de Toledo</b>, puis on descend vers le fleuve."],
+  ["12:20","mrio","<b>Madrid Río</b> : grandes aires de jeux au bord du Manzanares pour la petite."],
+  ["13:00","psegovia","<b>Puente de Segovia</b> : la vue sur le Palais et la cathédrale. Montée par la Cuesta de la Vega."],
+  ["13:20","almudena","<b>Cathédrale de l'Almudena</b>, face au Palais."],
+  ["13:30","palacio","<b>Palais royal</b>, billet à 13 h 30 (dimanche : fermeture 16 h, dernier accès 15 h). Salle du trône et Armurerie royale."],
+  ["15:30","oriente","<b>Plaza de Oriente</b>, puis les jardins de Sabatini."],
+  ["16:15","pespana","<b>Plaza de España</b> rénovée : goûter et aire de jeux."],
+  ["17:30","debod","<b>Temple de Debod</b> : coucher du soleil vers 17 h 55 sur la Casa de Campo."],
+  ["19:15","cavabaja","<b>Tapas dans la Cava Baja</b> (La Latina), retour par la Calle Bailén et la Calle Mayor."],
+  ["20:30","home","Retour au logement."]],
+ ado:"Négocier un objet au Rastro pour moins de 5 €, en espagnol."},
+{n:3,c:"--d3",date:"Lun. 28 déc.",t:"La route du Professeur, puis le Bernabéu",
+ route:["home","tirso","benav","sol",[40.4180,-3.6990],"bancoesp","cibeles",[40.4225,-3.6922],"colon",[40.4262,-3.6878],"serrano",[40.4380,-3.6868],"csic",[40.4428,-3.6890],"fomento",[40.4490,-3.6918],[40.4522,-3.6912],"bernabeu",[40.4522,-3.6912],[40.4460,-3.6920],[40.4380,-3.6905],[40.4376,-3.6990],[40.4345,-3.6995],"olavide",[40.4300,-3.7025],[40.4290,-3.7022],"billyf",[40.4262,-3.7012],"dosmayo",[40.4248,-3.7015],[40.4200,-3.7015],[40.4182,-3.7025],"sol","benav","tirso","home"],
+ gm:["home","sol","bancoesp","colon","csic","fomento","bernabeu","olavide","dosmayo","home"],
+ steps:[
+  ["08:45","home","Départ vers Sol, puis la Calle de Alcalá."],
+  ["09:00","sol","<b>Puerta del Sol</b>, encore calme le matin."],
+  ["09:20","bancoesp","<b>Banco de España</b>, le vrai, à l'angle d'Alcalá et du Paseo del Prado. Il n'apparaît jamais dans la série."],
+  ["09:30","cibeles","<b>Cibeles</b> : la fontaine où le Real fête ses titres."],
+  ["09:45","colon","<b>Plaza de Colón</b> par le Paseo de Recoletos, puis la Calle Serrano."],
+  ["10:15","csic","<b>Serrano 117, le CSIC</b> : c'est sa façade qui joue la Fábrica de Moneda dans les saisons 1 et 2."],
+  ["10:30","fomento","<b>Nuevos Ministerios</b>, sur la Castellana : la façade du ministère joue la Banque d'Espagne à partir de la saison 3."],
+  ["10:45","bernabeu","<b>Tour Bernabéu</b> à 11 h, entrée Avenida Concha Espina avec les billets en ligne. Vestiaires, pelouse, musée et panorama, 1 h 30 à 2 h. Beaucoup d'escaliers : porte-bébé conseillé."],
+  ["13:00",null,"<b>Déjeuner</b> autour du stade."],
+  ["14:15","olavide","Retour par la Castellana et Martínez Campos jusqu'à la <b>Plaza de Olavide</b> et son aire de jeux."],
+  ["15:30","billyf","<b>Calle Fuencarral</b> : on passe devant le premier Billy Brunch (n° 82)."],
+  ["15:45","dosmayo","<b>Plaza del Dos de Mayo</b>, cœur de Malasaña, autre aire de jeux."],
+  ["16:30","sol","Fuencarral piétonne, Gran Vía, Sol."],
+  ["17:15","home","Logement. Le 28 décembre, c'est la Saint-Innocent : le poisson d'avril espagnol."]],
+ ado:"Compter les Coupes d'Europe dans la vitrine du musée du Bernabéu."},
+{n:4,c:"--d4",date:"Mar. 29 déc.",t:"Prado et Retiro",
+ route:["home","tirso","benav","santaana",[40.4140,-3.6985],[40.4131,-3.6945],"caixa",[40.4125,-3.6930],"prado",[40.4155,-3.6905],"felipe","estanque",[40.4160,-3.6830],"cristal",[40.4115,-3.6830],"angel",[40.4120,-3.6795],[40.4180,-3.6790],[40.4205,-3.6776],[40.4214,-3.6766],[40.4235,-3.6735],"fnmt",[40.4235,-3.6735],[40.4214,-3.6766],[40.4207,-3.6830],"palcala","cibeles","neptuno",[40.4148,-3.6970],"santaana","benav","tirso","home"],
+ gm:["home","caixa","prado","estanque","cristal","angel","fnmt","palcala","neptuno","home"],
+ steps:[
+  ["09:30","santaana","Départ par la <b>Plaza Santa Ana</b> et la Calle de las Huertas, où des citations d'écrivains sont incrustées dans le pavé."],
+  ["09:45","caixa","<b>CaixaForum</b> et son grand jardin vertical, sur le Paseo del Prado."],
+  ["10:00","prado","<b>Musée du Prado</b> à l'ouverture (mardi 10 h–20 h). Parcours de 2 h : Las Meninas de Velázquez, le Tres de Mayo et les peintures noires de Goya, le Jardin des délices de Bosch."],
+  ["12:15",null,"<b>Déjeuner</b> ou pique-nique près des Jerónimos."],
+  ["13:30","felipe","Entrée du <b>Retiro</b> par la Puerta de Felipe IV."],
+  ["13:45","estanque","<b>Barques sur l'Estanque</b> : deux barques de quatre, 6 € chacune."],
+  ["14:45","cristal","<b>Palacio de Cristal</b>, la grande serre de verre."],
+  ["15:20","angel","<b>Fontaine de l'Ange déchu</b>, l'une des rares statues du diable en ville."],
+  ["16:00","fnmt","<b>La vraie Fábrica Nacional de Moneda</b>, angle Jorge Juan et Doctor Esquerdo, pour les fans de la série. Façade seulement."],
+  ["16:45","palcala","<b>Puerta de Alcalá</b>, Cibeles, puis le Paseo del Prado."],
+  ["17:15","neptuno","<b>Fontaine de Neptune</b>, rendez-vous des supporters de l'Atlético."],
+  ["17:45","santaana","<b>Tapas Plaza Santa Ana</b>, puis retour au logement à 5 min."]],
+ ado:"La légende dit que l'Ange déchu est à 666 m d'altitude : vérifier avec le GPS du téléphone."},
+{n:5,c:"--d5",date:"Mer. 30 déc.",t:"Guernica et envol",
+ route:["home","tirso",[40.4124,-3.7010],"antonm",[40.4105,-3.6962],"reina",[40.4100,-3.6972],[40.4113,-3.6985],"antonm",[40.4124,-3.7010],"tirso","home"],
+ metro:[["tirso","tribunal","nmin","airport"],"out"],
+ gm:["home","reina","antonm","home"],
+ steps:[
+  ["09:40","home","Départ par la Calle de la Magdalena et Antón Martín."],
+  ["10:00","reina","<b>Musée Reina Sofía</b> à l'ouverture : Guernica de Picasso, au 2e étage. Une heure suffit."],
+  ["11:20","antonm","<b>Mercado de Antón Martín</b> : de quoi manger pour le trajet."],
+  ["11:45","home","Logement, valises."],
+  ["12:20","M","<b>Métro L1 → L10 → L8</b> depuis Tirso de Molina, environ 50 min."],
+  ["13:15",null,"<b>Aéroport</b>, 2 h 30 avant le vol de 15 h 45."]],
+ ado:"Trouver dans Guernica la lampe à pétrole, l'ampoule et le cheval."}
+];
+
+/* --- outils --- */
+const pt=x=>typeof x==="string"?P[x]:x;
+function hav(a,b){const R=6371,r=Math.PI/180,dl=(b[0]-a[0])*r,dg=(b[1]-a[1])*r,s=Math.sin(dl/2)**2+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dg/2)**2;return 2*R*Math.asin(Math.sqrt(s));}
+const DET=1.08;
+function len(arr){let d=0;for(let i=1;i<arr.length;i++)d+=hav(pt(arr[i-1]),pt(arr[i]));return d*DET;}
+const fkm=k=>k.toFixed(1).replace(".",",");
+const fmin=k=>{const m=Math.round(k/4*60);return m<60?m+" min":Math.floor(m/60)+" h "+String(m%60).padStart(2,"0");};
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim()||"#b3122a";
+const named=x=>typeof x==="string"&&P[x]&&P[x][2];
+const TILES="https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const ATTR='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · itinéraires <a href="https://routing.openstreetmap.de/">FOSSGIS OSRM</a>';
+const OSRM="https://routing.openstreetmap.de/routed-foot/route/v1/foot/";
+
+/* étoiles du drapeau */
+const star='<svg viewBox="0 0 24 24"><path d="M12 1.8l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.7-6.2 3.7 1.6-7L2 9l7.1-.6z"/></svg>';
+document.getElementById("stars").innerHTML=star.repeat(7);
+
+/* étapes nommées du trajet (points de passage envoyés au calcul) */
+DAYS.forEach(d=>{
+  const w=[];d.route.forEach(x=>{if(named(x)&&w[w.length-1]!==x)w.push(x);});
+  d.wp=w; d.legs=null; d.km=len(d.route); d.exact=false;
+});
+function homeIcon(){return L.divIcon({className:"",html:'<span class="pinH">L</span>',iconSize:[26,26],iconAnchor:[13,13]});}
+function numIcon(n,c){return L.divIcon({className:"",html:`<span class="pinN" style="background:var(${c})">${n}</span>`,iconSize:[26,26],iconAnchor:[13,13]});}
+
+/* plan d'ensemble */
+const om=L.map("omap",{scrollWheelZoom:false,zoomSnap:.25});
+L.tileLayer(TILES,{maxZoom:19,attribution:ATTR}).addTo(om);
+const allB=L.latLngBounds([]);
+DAYS.forEach(d=>{
+  d.oLine=L.polyline(d.route.map(pt).map(q=>[q[0],q[1]]),{color:css(d.c),weight:5,opacity:.9,lineJoin:"round"}).addTo(om);
+  allB.extend(d.oLine.getBounds());
+});
+om.fitBounds(allB,{padding:[14,14]});
+L.marker([P.home[0],P.home[1]],{icon:homeIcon(),title:"Logement"}).addTo(om);
+[["bernabeu","Bernabéu"],["palacio","Palais royal"],["prado","Prado"],["sol","Sol"],["rastro","Rastro"],["debod","Debod"],["csic","CSIC"],["mrio","Madrid Río"],["fnmt","FNMT"]].forEach(([k,lab])=>{
+  L.circleMarker([P[k][0],P[k][1]],{radius:5,color:"#fff",weight:2,fillColor:"#141517",fillOpacity:1}).addTo(om).bindTooltip(lab,{permanent:true,direction:"right",className:"tipL",offset:[6,0]});
+});
+
+/* puces et réglette */
+const chips=document.getElementById("chips"),ruler=document.getElementById("ruler");
+function highlight(n){DAYS.forEach(d=>d.oLine.setStyle({opacity:n===null||d.n===n?.95:.15,weight:d.n===n?7:5}));
+  if(n!==null){const d=DAYS.find(x=>x.n===n);om.fitBounds(d.oLine.getBounds(),{padding:[20,20]});}else om.fitBounds(allB,{padding:[14,14]});}
+DAYS.forEach(d=>{
+  const b=document.createElement("button");b.className="chip";b.type="button";b.id="chip"+d.n;b.setAttribute("aria-pressed","false");
+  b.innerHTML=`<i style="background:var(${d.c})"></i>J${d.n}`;b.title=d.t;
+  b.addEventListener("click",()=>{const on=b.getAttribute("aria-pressed")!=="true";
+    chips.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed","false"));
+    if(on){b.setAttribute("aria-pressed","true");highlight(d.n);}else highlight(null);});
+  chips.appendChild(b);
+  const a=document.createElement("a");a.className="rseg";a.href="#j"+d.n;a.style.background=`var(${d.c})`;
+  a.innerHTML=`<b class="num" id="rk${d.n}">≈ ${fkm(d.km)} km</b><span>${d.date}</span>`;ruler.appendChild(a);
+});
+
+/* carnet */
+const host=document.getElementById("days");
+DAYS.forEach(d=>{
+  const pins=[];d.steps.forEach(s=>{if(s[1]&&s[1]!=="M"&&s[1]!=="home"&&!pins.includes(s[1]))pins.push(s[1]);});
+  const num=k=>pins.indexOf(k)+1;
+  const det=document.createElement("details");det.className="day";det.id="j"+d.n;det.open=true;det.style.setProperty("--dc",`var(${d.c})`);
+  det.innerHTML=`<summary><span class="dn">${d.n}</span><span class="dt">${d.t}</span><span class="dr"><span class="dd">${d.date}</span><span class="dk num" id="dk${d.n}">≈ ${fkm(d.km)} km</span></span></summary>`;
+  const body=document.createElement("div");body.className="db";
+  const left=document.createElement("div");left.className="dleft";
+  const ol=document.createElement("ol");ol.className="steps";
+  d.steps.forEach(s=>{const li=document.createElement("li");let mark="<span></span>";
+    if(s[1]==="M")mark='<span class="pn metro" title="Métro">M</span>';
+    else if(s[1]==="home")mark='<span class="pn" style="background:var(--ink);color:var(--paper);border-radius:2px">L</span>';
+    else if(s[1])mark=`<span class="pn">${num(s[1])}</span>`;
+    li.innerHTML=`<span class="tm">${s[0].replace(":"," h ")}</span>${mark}<span>${s[2]}</span>`;ol.appendChild(li);});
+  left.appendChild(ol);
+  const ado=document.createElement("p");ado.className="ado";ado.innerHTML=`<strong>Défi ados</strong>${d.ado}`;left.appendChild(ado);
+  const side=document.createElement("div");side.className="dside";
+  const mdiv=document.createElement("div");mdiv.className="dmap";mdiv.id="map"+d.n;mdiv.setAttribute("role","region");mdiv.setAttribute("aria-label",`Carte du jour ${d.n} : ${d.t}`);
+  side.appendChild(mdiv);
+  const tb=document.createElement("table");tb.className="legs";tb.id="legs"+d.n;side.appendChild(tb);
+  const st=document.createElement("p");st.className="cap rstat";st.id="st"+d.n;st.textContent="Calcul de l'itinéraire à pied…";side.appendChild(st);
+  const g2=d.gm.map(k=>P[k][0].toFixed(5)+","+P[k][1].toFixed(5));
+  const url="https://www.google.com/maps/dir/?api=1&travelmode=walking&origin="+g2[0]+"&destination="+g2[g2.length-1]+(g2.length>2?"&waypoints="+encodeURIComponent(g2.slice(1,-1).join("|")):"");
+  const a=document.createElement("a");a.className="gm";a.href=url;a.target="_blank";a.rel="noopener";
+  a.innerHTML=`Itinéraire à pied <span>Google Maps, pas à pas ↗</span>`;side.appendChild(a);
+  body.appendChild(left);body.appendChild(side);det.appendChild(body);host.appendChild(det);
+
+  const m=L.map(mdiv,{scrollWheelZoom:false,zoomSnap:.25,dragging:!L.Browser.mobile,tap:false});
+  L.tileLayer(TILES,{maxZoom:19,attribution:ATTR}).addTo(m);
+  if(d.metro)L.polyline(d.metro[0].map(pt).map(q=>[q[0],q[1]]),{color:css("--metro"),weight:4,dashArray:"2 8",lineCap:"round"}).addTo(m).bindTooltip(d.metro[1]==="in"?"Métro depuis l'aéroport":"Métro vers l'aéroport",{sticky:true});
+  d.dHalo=L.polyline(d.route.map(pt).map(q=>[q[0],q[1]]),{color:"#fff",weight:9,opacity:.85}).addTo(m);
+  d.dLine=L.polyline(d.route.map(pt).map(q=>[q[0],q[1]]),{color:css(d.c),weight:5,dashArray:"6 8"}).addTo(m);
+  pins.forEach((k,i)=>L.marker([P[k][0],P[k][1]],{icon:numIcon(i+1,d.c),title:P[k][2]}).addTo(m));
+  L.marker([P.home[0],P.home[1]],{icon:homeIcon(),title:"Logement"}).addTo(m);
+  m.fitBounds(d.dLine.getBounds(),{padding:[22,22]});
+  d.map=m;
+  renderLegs(d);
+});
+
+function renderLegs(d){
+  const tb=document.getElementById("legs"+d.n);
+  let rows="";
+  if(d.legs){d.wp.slice(1).forEach((b,i)=>{const k=d.legs[i]/1000;if(k<0.05)return;rows+=`<tr><td>${P[d.wp[i]][2]} → ${P[b][2]}</td><td class="k">${fkm(k)} km</td><td class="k">${fmin(k)}</td></tr>`;});}
+  else{let acc=0,prev=null,last=null;d.route.forEach(x=>{const q=pt(x);if(prev)acc+=hav(prev,q)*DET;prev=q;
+    if(named(x)){if(last===null){last=x;acc=0;}else if(x!==last){if(acc>=0.05)rows+=`<tr><td>${P[last][2]} → ${P[x][2]}</td><td class="k">≈ ${fkm(acc)} km</td><td class="k">${fmin(acc)}</td></tr>`;last=x;acc=0;}}});}
+  const pre=d.exact?"":"≈ ";
+  tb.innerHTML=`<thead><tr><th>Tronçon à pied</th><th style="text-align:right">km</th><th style="text-align:right">à 4 km/h</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td>Total du jour</td><td class="k">${pre}${fkm(d.km)}</td><td class="k">${fmin(d.km)}</td></tr></tfoot>`;
+  document.getElementById("dk"+d.n).textContent=pre+fkm(d.km)+" km";
+  document.getElementById("rk"+d.n).textContent=pre+fkm(d.km)+" km";
+  const tot=DAYS.reduce((a,x)=>a+x.km,0),allExact=DAYS.every(x=>x.exact);
+  document.getElementById("factKm").textContent=(allExact?"":"≈ ")+fkm(tot)+" km sur le séjour, sans les visites";
+}
+
+/* itinéraires exacts, calculés au chargement puis gardés dans le navigateur */
+function cacheGet(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch(e){return null;}}
+function cacheSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+async function route(d){
+  const coords=d.wp.map(k=>P[k][1].toFixed(5)+","+P[k][0].toFixed(5)).join(";");
+  const key="madrid-osrm-v1-"+coords;
+  let r=cacheGet(key);
+  if(!r){
+    const res=await fetch(OSRM+coords+"?overview=full&geometries=geojson&steps=false");
+    if(!res.ok)throw new Error("HTTP "+res.status);
+    const j=await res.json();if(j.code!=="Ok")throw new Error(j.code);
+    r={g:j.routes[0].geometry.coordinates.map(c=>[+c[1].toFixed(5),+c[0].toFixed(5)]),l:j.routes[0].legs.map(x=>Math.round(x.distance))};
+    cacheSet(key,r);
+  }
+  return r;
+}
+(async()=>{
+  for(const d of DAYS){
+    const st=document.getElementById("st"+d.n);
+    try{
+      const r=await route(d);
+      d.dHalo.setLatLngs(r.g);d.dLine.setLatLngs(r.g);d.dLine.setStyle({dashArray:null});d.oLine.setLatLngs(r.g);
+      d.legs=r.l;d.km=r.l.reduce((a,b)=>a+b,0)/1000;d.exact=true;
+      d.map.fitBounds(d.dLine.getBounds(),{padding:[22,22]});
+      st.textContent="Itinéraire à pied calculé sur les rues d'OpenStreetMap.";
+    }catch(e){
+      st.textContent="Calcul indisponible pour le moment : tracé et distances approximatifs (pointillés).";
+    }
+    renderLegs(d);
+  }
+  allB._southWest=null;allB._northEast=null;DAYS.forEach(d=>allB.extend(d.oLine.getBounds()));
+  if(!chips.querySelector('[aria-pressed="true"]'))om.fitBounds(allB,{padding:[14,14]});
+})();
+
+})();
+</script>
+</body>
+</html>
