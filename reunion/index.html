@@ -170,9 +170,9 @@ footer{margin-top:2.5rem;border-top:2px solid var(--rule);padding-top:.8rem;font
 </style>
 <style>
 /* Même roadbook que Madrid : bandeau couleur lagon, carte d'ensemble, réglette par base, carnet jour par jour. Lave pour la base Sud, lagon pour la base Ouest. */
-:root{--mast:#0b6461;--b1:#c2410c;--b2:#0e8f8a;--car:#1d4fd8;--foot:#d6197c}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--mast:#0a4a48;--b1:#ff8a50;--b2:#4fd1c9;--car:#7aa2ff;--foot:#ff6fb4}}
-:root[data-theme="dark"]{--mast:#0a4a48;--b1:#ff8a50;--b2:#4fd1c9;--car:#7aa2ff;--foot:#ff6fb4}
+:root{--mast:#0b6461;--b1:#c2410c;--b2:#0e8f8a;--b3:#6d3fc0;--car:#1d4fd8;--foot:#d6197c}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--mast:#0a4a48;--b1:#ff8a50;--b2:#4fd1c9;--b3:#b99bff;--car:#7aa2ff;--foot:#ff6fb4}}
+:root[data-theme="dark"]{--mast:#0a4a48;--b1:#ff8a50;--b2:#4fd1c9;--b3:#b99bff;--car:#7aa2ff;--foot:#ff6fb4}
 .mast h1{font-size:clamp(3rem,9.5vw,5.4rem)}
 .road{font:600 1rem var(--ff-d);letter-spacing:.02em;color:var(--dc);margin:0 0 .5rem}
 .dtxt{font-size:.98rem;margin:0}
@@ -196,14 +196,16 @@ footer{margin-top:2.5rem;border-top:2px solid var(--rule);padding-top:.8rem;font
     <div>
       <div class="stars" aria-hidden="true"></div>
       <h1>La Réunion</h1>
-      <p class="dates">1er → 13 août 2027<br>Sud et Ouest, toujours ensemble</p>
-      <p class="lead">Deux bases : Saint-Pierre pour le Trou de Fer, le volcan et les tunnels de lave, puis L'Ermitage pour le Piton des Neiges, Mafate vu d'en haut et la semaine au lagon. Chaque jour a sa carte, ses routes et ses randonnées calculées sur OpenStreetMap. Touche un jour pour le voir sur la carte.</p>
+      <p class="dates">1er → 14 août 2027<br>Sud et Ouest, toujours ensemble</p>
+      <p class="lead">Saint-Pierre pour le Trou de Fer, le volcan et les tunnels de lave, L'Ermitage pour le Piton des Neiges, Mafate vu d'en haut et la semaine au lagon, puis une dernière nuit près de l'aéroport. Chaque jour a sa carte, ses routes et ses randonnées calculées sur OpenStreetMap. Touche un jour pour le voir sur la carte.</p>
       <dl class="facts">
+        <dt>Vols</dt><dd>arrivée dim. 1er à 9 h · départ sam. 14 à 8 h</dd>
         <dt>Voyageurs</dt><dd>2 adultes, 4 enfants (3, 12, 14 et 16 ans)</dd>
-        <dt>Bases</dt><dd>Saint-Pierre 4 nuits · L'Ermitage 8 nuits</dd>
+        <dt>Bases</dt><dd>Saint-Pierre 4 nuits · L'Ermitage 8 nuits · Sainte-Marie 1 nuit</dd>
         <dt>Route</dt><dd id="factCar">≈ 19 h de voiture sur le séjour</dd>
         <dt>Randos</dt><dd id="factFoot">4 randonnées, dont les deux Pitons</dd>
-        <dt>Valises</dt><dd>un seul changement, le 5 août</dd>
+        <dt>Voiture</dt><dd>de location, de l'aéroport à l'aéroport</dd>
+        <dt>Valises</dt><dd>deux changements, le 5 et le 13 août</dd>
       </dl>
     </div>
     <div class="mast-m">
@@ -236,21 +238,23 @@ footer{margin-top:2.5rem;border-top:2px solid var(--rule);padding-top:.8rem;font
       <tr><td>Refuge de la Caverne Dufour</td><td class="w">nuit du 7 août</td><td>6 lits. 02 62 90 78 78 ou 06 93 13 54 10. Nuit seule possible (20–21 € par personne), repas en option.</td></tr>
       <tr><td>Logement Saint-Pierre</td><td class="w">1er → 5 août</td><td>4 nuits.</td></tr>
       <tr><td>Logement L'Ermitage</td><td class="w">5 → 13 août</td><td>8 nuits, la nuit du 7 au refuge incluse : les valises restent dans la maison.</td></tr>
+      <tr><td>Nuit à Sainte-Marie</td><td class="w">13 → 14 août</td><td>1 nuit à 10 min de l'aéroport, pour le vol de 8 h.</td></tr>
       <tr><td>Tunnel de lave</td><td class="w">4 août</td><td>Trouver un opérateur qui accepte une enfant de 3 ans, formule famille sans passages à ramper.</td></tr>
       <tr><td>Sortie baleines</td><td class="w">11 août</td><td>Au départ du port de Saint-Gilles, avec un opérateur labellisé.</td></tr>
-      <tr><td>Voiture</td><td class="w">1er → 13 août</td><td>Un 7 places long, ou un coffre de toit pour les valises.</td></tr>
+      <tr><td>Voiture de location</td><td class="w">1er → 14 août</td><td>Prise à l'aéroport le 1er vers 9 h 30, rendue le 14 vers 6 h : vérifier que l'agence ouvre assez tôt, ou qu'elle accepte un retour avec boîte à clés. Un 7 places long, ou un coffre de toit pour les valises. Siège auto pour la petite.</td></tr>
     </tbody>
   </table></div>
 
   <h2 id="pratique">Pratique</h2>
   <div class="notes">
-    <div class="note box"><h3>Pourquoi deux bases</h3><ul>
+    <div class="note box"><h3>Pourquoi ces bases</h3><ul>
       <li>Sans nuit dans Mafate, Hell-Bourg n'est plus utile : Mafate se regarde d'en haut depuis le Maïdo (6 août), le Piton des Neiges (8 août) et Roche Verre Bouteille (10 août).</li>
-      <li>Le Voile de la Mariée se fait le jour du départ, sur la route de l'aéroport : le vol est le soir.</li>
-      <li>Les valises ne bougent qu'une fois, le 5 août.</li></ul></div>
+      <li>Le Voile de la Mariée se fait le 13, sur la route de la dernière nuit à Sainte-Marie.</li>
+      <li>Avec un vol à 8 h, partir de L'Ermitage voudrait dire un réveil vers 4 h 15 pour la petite. À Sainte-Marie, l'aéroport est à 10 min.</li>
+      <li>Les valises bougent deux fois, le 5 et le 13 août.</li></ul></div>
     <div class="note box"><h3>Temps de route</h3><ul>
       <li>Du 1er au 8 août : environ 14 h de voiture au total.</li>
-      <li>Du 9 au 13 août : environ 5 h, dont 3 h le jour du départ.</li>
+      <li>Du 9 au 14 août : environ 5 h, dont 3 h le 13 août.</li>
       <li>Aux heures de pointe, comptez 30 min de plus sur la route des Tamarins et autour de Saint-Denis.</li></ul></div>
     <div class="note box"><h3>Le Piton des Neiges avec la petite</h3><ul>
       <li>Sac de couchage enfant grand froid, sous-couches laine, bonnet, gants, chancelière pour le porte-bébé au sommet.</li>
@@ -267,7 +271,7 @@ footer{margin-top:2.5rem;border-top:2px solid var(--rule);padding-top:.8rem;font
     <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap · données cartographiques</a>
     <a href="https://routing.openstreetmap.de/" target="_blank" rel="noopener">FOSSGIS · calcul d'itinéraires OSRM</a>
   </div>
-  <footer>Programme arrêté le 19 octobre 2026. Vérifiez ouvertures et tarifs avant le départ.</footer>
+  <footer>Programme mis à jour le 21 octobre 2026. Vérifiez ouvertures et tarifs avant le départ.</footer>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -299,20 +303,23 @@ const P={
  leu:[-21.1700,55.2880,"Lagon de Saint-Leu"],
  aigrettes:[-21.0540,55.2370,"Bassin des Aigrettes"],
  voile:[-21.0366,55.5367,"Voile de la Mariée"],
- hellbourg:[-21.0645,55.5195,"Hell-Bourg (déjeuner)"]
+ hellbourg:[-21.0645,55.5195,"Hell-Bourg (déjeuner)"],
+ stemarie:[-20.8967,55.5497,"Étape · Sainte-Marie"]
 };
-const HOMES=[["stpierre",0],["ermitage",1]];
+const HOMES=[["stpierre",0],["ermitage",1],["stemarie",2]];
 
 const S=[
  {n:"Base 1",z:"Saint-Pierre",nights:"1 → 5 août · 4 nuits",c:"#c2410c",
   why:"Le Sud et l'Est : Trou de Fer 1 h 15, volcan 1 h 15, tunnels 45 min."},
  {n:"Base 2",z:"L'Ermitage",nights:"5 → 13 août · 8 nuits (dont 1 au refuge)",c:"#0e8f8a",
-  why:"Le plus grand lagon de l'île. Maïdo, Roche Verre Bouteille et Piton des Neiges depuis ici, puis la semaine calme."}
+  why:"Le plus grand lagon de l'île. Maïdo, Roche Verre Bouteille et Piton des Neiges depuis ici, puis la semaine calme."},
+ {n:"Étape",z:"Sainte-Marie",nights:"13 → 14 août · 1 nuit",c:"#6d3fc0",
+  why:"À 10 min de l'aéroport, pour le vol de 8 h sans réveil à 4 h."}
 ];
 
 const D=[
  {s:0,d:"Dim. 1er août",t:"Arrivée à Saint-Pierre",road:"Aéroport → Saint-Pierre ≈ 1 h 10",
-  txt:"Arrivée le matin, route par la côte Ouest. Installation, sieste, premier bain dans le lagon de Saint-Pierre. Coucher tôt.",
+  txt:"Atterrissage à 9 h. Récupération de la voiture de location à l'aéroport, puis route par la côte Ouest. Installation, sieste, premier bain dans le lagon de Saint-Pierre. Coucher tôt.",
   ado:"Repérer le premier poisson-clown du lagon.",
   legs:[{m:"car",p:["aero","stpierre"]}]},
  {s:0,d:"Lun. 2 août",t:"Le Trou de Fer",road:"Saint-Pierre → Bélouve ≈ 1 h 15 (aller) · ≈ 1 h 15 (retour)",
@@ -359,14 +366,18 @@ const D=[
   txt:"Kélonia le matin, puis masque et tuba avec les tortues dans le lagon de Saint-Leu. Fin d'après-midi au Bassin des Aigrettes, puis dernier carri en famille au coucher du soleil.",
   ado:"Nager à côté d'une tortue sans la toucher.",
   legs:[{m:"car",p:["ermitage","kelonia","leu","aigrettes","ermitage"]}]},
- {s:1,d:"Ven. 13 août",t:"Le Voile de la Mariée, puis l'envol",road:"L'Ermitage → Voile de la Mariée ≈ 1 h 45 · Voile → Hell-Bourg ≈ 15 min · Hell-Bourg → aéroport ≈ 1 h 15",
-  txt:"Départ en milieu de matinée, valises dans la voiture. Montée dans le cirque de Salazie, arrêt au Voile de la Mariée, la grande cascade qui tombe du rempart au bord de la route. Déjeuner créole à Hell-Bourg et tour du village. Redescente vers l'aéroport, restitution de la voiture et vol de nuit.",
+ {s:2,d:"Ven. 13 août",t:"Le Voile de la Mariée, nuit près de l'aéroport",road:"L'Ermitage → Voile de la Mariée ≈ 1 h 45 · Voile → Hell-Bourg ≈ 15 min · Hell-Bourg → Sainte-Marie ≈ 1 h",bag:"Changement de base",
+  txt:"Départ en milieu de matinée, valises dans la voiture. Montée dans le cirque de Salazie, arrêt au Voile de la Mariée, la grande cascade qui tombe du rempart au bord de la route. Déjeuner créole à Hell-Bourg et tour du village. Redescente vers Sainte-Marie, à 10 minutes de l'aéroport : dernier dîner, valises bouclées, coucher tôt.",
   ado:"Compter les cascades visibles depuis la route de Salazie.",
-  legs:[{m:"car",p:["ermitage","voile","hellbourg","aero"]}]}
+  legs:[{m:"car",p:["ermitage","voile","hellbourg","stemarie"]}]},
+ {s:2,d:"Sam. 14 août",t:"Envol à 8 h",road:"Sainte-Marie → aéroport ≈ 10 min",
+  txt:"Réveil 5 h 15, départ 5 h 45. Plein d'essence et restitution de la voiture à l'aéroport vers 6 h, enregistrement 2 h avant le vol de 8 h. Petit-déjeuner à l'aéroport.",
+  ado:"Dire au revoir au Piton des Neiges par le hublot, s'il se montre.",
+  legs:[{m:"car",p:["stemarie","aero"]}]}
 ];
 
 
-const BC=["--b1","--b2"];
+const BC=["--b1","--b2","--b3"];
 const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim()||"#0e8f8a";
 const TILES="https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const ATTR='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · itinéraires <a href="https://routing.openstreetmap.de/">FOSSGIS OSRM</a>';
@@ -374,7 +385,7 @@ const ROUTER={car:'https://routing.openstreetmap.de/routed-car/route/v1/driving/
 const fkm=m=>(m/1000).toFixed(1).replace('.',',');
 const fT=s=>{const h=Math.floor(s/3600),m=Math.round(s%3600/60);return (h?h+' h ':'')+String(m).padStart(h?2:1,'0')+' min';};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const name=k=>P[k][2].replace(/^Base \d · /,'');
+const name=k=>P[k][2].replace(/^(Base \d|Étape) · /,'');
 const ll=k=>[P[k][0],P[k][1]];
 
 /* étoile : une silhouette de piton à la place des étoiles de Madrid */
@@ -481,7 +492,7 @@ const st=document.getElementById('status');
     renderLegs(i);st.textContent='Calcul des tracés : '+n+'/'+all.length;await sleep(150);
   }
   D.forEach(d=>{if(d.map){const b=L.latLngBounds(d.legs.flatMap(l=>l.res.geo));d.map.fitBounds(b,{padding:[24,24],maxZoom:13});}});
-  let car=0,foot=0;const bs=[0,0];all.forEach(([i,l])=>{if(!l.res.ok)return;if(l.m==='car'){car+=l.res.dur;bs[D[i].s]+=l.res.dur;}else foot+=l.res.dist;});
+  let car=0,foot=0;const bs=[0,0,0];all.forEach(([i,l])=>{if(!l.res.ok)return;if(l.m==='car'){car+=l.res.dur;bs[D[i].s]+=l.res.dur;}else foot+=l.res.dist;});
   if(car){document.getElementById('factCar').textContent=fT(car)+' de voiture sur le séjour';S.forEach((s,i)=>document.getElementById('rs'+i).textContent=s.nights.split(' · ')[0]+' · '+fT(bs[i])+' de route');}
   if(foot)document.getElementById('factFoot').textContent='4 randonnées, '+fkm(foot)+' km à pied';
   st.textContent=fails?fails+' tracé(s) approximatif(s) : serveur de calcul injoignable, rechargez plus tard.':'Routes et randonnées calculées sur OpenStreetMap. Trait plein : voiture · pointillés : marche.';
