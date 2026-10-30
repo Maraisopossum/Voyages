@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>La Réunion, variante Hell-Bourg</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Roadbook, comme La Réunion : bandeau carmin du drapeau de Madrid avec ses 7 étoiles + plan d'ensemble, puis le carnet jour par jour (règles noires épaisses, tracés à pied, heures, tronçons). */
+:root{
+  --paper:#f1f2f3; --panel:#ffffff; --ink:#141517; --muted:#4c5257; --rule:#141517; --hair:#cdd2d5;
+  --mast:#b3122a; --onmast:#ffffff; --hi:#ffd23f;
+  --d1:#b3122a; --d2:#c25e00; --d3:#1d4fd8; --d4:#18794e; --d5:#7a3fc4; --metro:#1d4fd8;
+  --land:#eceeef; --park:#cfe3c6; --water:#a2cde2; --street:#ffffff; --case:#c4cacd; --maptext:#3a4146;
+  --ff-d:'Barlow Condensed','Arial Narrow',sans-serif; --ff-b:'Barlow','Helvetica Neue',Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0f1113; --panel:#171a1d; --ink:#eef0f1; --muted:#a6adb2; --rule:#eef0f1; --hair:#2c3237;
+  --mast:#8f0e22; --onmast:#ffffff;
+  --d1:#ff6b7d; --d2:#ffa24d; --d3:#7aa2ff; --d4:#4fcf94; --d5:#c19bff; --metro:#7aa2ff;
+  --land:#1b1f22; --park:#22392a; --water:#1e4658; --street:#3b4349; --case:#2a3034; --maptext:#c3cacf;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0f1113; --panel:#171a1d; --ink:#eef0f1; --muted:#a6adb2; --rule:#eef0f1; --hair:#2c3237;
+  --mast:#8f0e22; --onmast:#ffffff;
+  --d1:#ff6b7d; --d2:#ffa24d; --d3:#7aa2ff; --d4:#4fcf94; --d5:#c19bff; --metro:#7aa2ff;
+  --land:#1b1f22; --park:#22392a; --water:#1e4658; --street:#3b4349; --case:#2a3034; --maptext:#c3cacf;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font:17px/1.55 var(--ff-b);margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
+h1,h2,h3,h4{font-family:var(--ff-d);margin:0;text-wrap:balance;line-height:1.04}
+p{margin:.45rem 0}
+a{color:var(--ink);text-decoration-thickness:2px;text-underline-offset:3px;text-decoration-color:var(--d1)}
+:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+.mast{background:var(--mast);color:var(--onmast);border-bottom:6px solid var(--rule)}
+.mast-in{max-width:72rem;margin:0 auto;padding-block:1.4rem 1.2rem;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:1.4rem 2rem;align-items:start}
+.stars{display:flex;gap:.35rem;margin-bottom:.6rem}
+.stars svg{width:1.05rem;height:1.05rem;fill:var(--onmast)}
+.mast h1{font-size:clamp(3.6rem,13vw,6.6rem);font-weight:700;text-transform:uppercase;letter-spacing:-.005em}
+.dates{font:600 1.45rem/1.15 var(--ff-d);margin:.6rem 0 .8rem}
+.mast .lead{font-size:1.04rem;max-width:32rem}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:.25rem 1rem;margin:1rem 0 0;font-size:.95rem;border-top:2px solid var(--onmast);padding-top:.7rem}
+.facts dt{font:600 .95rem var(--ff-d);text-transform:uppercase;letter-spacing:.06em;opacity:.85}
+.facts dd{margin:0}
+.mast-m{min-width:0}
+.omap{display:block;width:100%;height:auto;max-height:82vh;border:3px solid var(--rule);background:var(--land)}
+.chips{display:flex;flex-wrap:wrap;gap:.35rem;margin:.6rem 0 .2rem}
+.chip{font:700 1rem var(--ff-d);text-transform:uppercase;letter-spacing:.04em;border:2px solid var(--rule);background:var(--panel);color:var(--ink);padding:.3rem .7rem;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem}
+.chip i{width:.8rem;height:.8rem;display:inline-block}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.mcap{font-size:.82rem;opacity:.9;margin:.2rem 0 0}
+
+.wrap{max-width:72rem;margin:0 auto;padding-block:0 4rem;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.ruler{display:flex;gap:2px;margin:1.2rem 0 0}
+.rseg{flex:1 1 0;min-width:0;padding:.45rem .6rem;color:#fff;border-top:3px solid var(--rule);display:flex;flex-direction:column;text-decoration:none}
+.rseg b{font:700 1.6rem var(--ff-d);line-height:1}
+.rseg span{font-size:.76rem;overflow-wrap:anywhere}
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;overflow-x:auto;background:var(--paper);border-bottom:2px solid var(--rule);margin-top:1rem}
+.nav a{white-space:nowrap;text-decoration:none;font:600 1.05rem var(--ff-d);text-transform:uppercase;letter-spacing:.04em;padding:.7rem .9rem}
+.nav a:hover{background:var(--hi);color:#141517}
+h2{font-size:2.4rem;font-weight:700;text-transform:uppercase;margin:3.4rem 0 1rem;padding-top:.5rem;border-top:6px solid var(--rule);scroll-margin-top:3.6rem}
+.lead2{max-width:46rem}
+.cap{font-size:.86rem;color:var(--muted);max-width:46rem}
+
+.day{scroll-margin-top:3.6rem;background:var(--panel);border:2px solid var(--rule);margin:.8rem 0}
+.day summary{display:grid;grid-template-columns:3.6rem minmax(0,1fr) auto;align-items:stretch;cursor:pointer;list-style:none}
+.day summary::-webkit-details-marker{display:none}
+.dn{display:grid;place-items:center;color:#fff;font:700 2.2rem var(--ff-d);min-height:3.8rem;background:var(--dc)}
+.dt{padding:.65rem .8rem;font:700 1.45rem var(--ff-d);line-height:1.08;align-self:center;min-width:0}
+.dr{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;padding:0 1rem;text-align:right}
+.dd{font:600 .9rem var(--ff-d);text-transform:uppercase;letter-spacing:.07em;color:var(--muted);white-space:nowrap}
+.dk{font:700 1.2rem var(--ff-d);white-space:nowrap}
+.day[open] summary{border-bottom:2px solid var(--rule)}
+.db{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:1.4rem;padding:1rem}
+.dleft,.dside{min-width:0}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.6rem}
+.steps li{display:grid;grid-template-columns:3.9rem 1.6rem minmax(0,1fr);gap:.5rem;font-size:.96rem;align-items:start}
+.tm{white-space:nowrap;font:700 1.1rem var(--ff-d);color:var(--dc);font-variant-numeric:tabular-nums;padding-top:.05rem}
+.pn{width:1.45rem;height:1.45rem;border-radius:50%;background:var(--dc);color:#fff;font:700 .85rem var(--ff-d);display:grid;place-items:center;margin-top:.1rem}
+.pn.metro{background:none;border:2px dashed var(--metro);color:var(--metro)}
+.steps b{font-weight:600}
+.steps .opt{color:var(--muted)}
+.ado{margin:1rem 0 0;padding:.6rem .8rem;border:2px solid var(--rule);background:var(--paper);font-size:.93rem}
+.ado strong{font:700 1rem var(--ff-d);text-transform:uppercase;letter-spacing:.05em;margin-right:.4rem}
+.dside{display:flex;flex-direction:column;gap:.7rem}
+.dmap{display:block;width:100%;height:auto;border:2px solid var(--rule);background:var(--land)}
+.legs{width:100%;border-collapse:collapse;font-size:.88rem;background:var(--panel);border:2px solid var(--rule)}
+.legs th{font:600 .82rem var(--ff-d);text-transform:uppercase;letter-spacing:.07em;background:var(--ink);color:var(--paper);text-align:left;padding:.35rem .6rem}
+.legs td{padding:.32rem .6rem;border-bottom:1px solid var(--hair);vertical-align:top}
+.legs td.k{text-align:right;white-space:nowrap;font:700 1.02rem var(--ff-d);font-variant-numeric:tabular-nums}
+.legs tfoot td{font:700 1.15rem var(--ff-d);border-top:2px solid var(--rule)}
+.gm{display:flex;align-items:center;justify-content:space-between;gap:.6rem;border:2px solid var(--rule);padding:.5rem .8rem;text-decoration:none;font:700 1.05rem var(--ff-d);text-transform:uppercase;letter-spacing:.04em;background:var(--panel)}
+.gm:hover{background:var(--hi);color:#141517}
+.gm span{font:500 .82rem var(--ff-b);text-transform:none;letter-spacing:0;color:var(--muted)}
+.gm:hover span{color:#141517}
+
+.tw{overflow-x:auto;margin:1rem 0}
+.tbl{width:100%;border-collapse:collapse;background:var(--panel);border:2px solid var(--rule);font-size:.93rem;min-width:36rem}
+.tbl th{font:600 .84rem var(--ff-d);text-transform:uppercase;letter-spacing:.08em;background:var(--ink);color:var(--paper);text-align:left;padding:.5rem .7rem}
+.tbl td{padding:.5rem .7rem;border-bottom:1px solid var(--hair);vertical-align:top}
+.tbl td:first-child{font-weight:600}
+.tbl td.w{white-space:nowrap;font:600 1rem var(--ff-d)}
+.callout{background:var(--hi);color:#141517;padding:.7rem 1rem;max-width:48rem;margin:1rem 0;border:2px solid #141517}
+.callout a{color:#141517}
+.metro{display:grid;grid-template-columns:repeat(auto-fit,minmax(17rem,1fr));gap:1rem}
+.mcard{background:var(--panel);border:2px solid var(--rule);padding:.8rem 1rem;min-width:0}
+.mcard h3{font-size:1.35rem;margin-bottom:.4rem}
+.line{display:flex;flex-direction:column;gap:.45rem;margin:.4rem 0;padding:0;list-style:none}
+.line li{display:grid;grid-template-columns:2.6rem minmax(0,1fr);gap:.5rem;align-items:center;font-size:.94rem}
+.lb{font:700 1rem var(--ff-d);color:#fff;text-align:center;padding:.1rem 0;border-radius:3px}
+.l8{background:#e5007d}.l10{background:#00519e}.l1{background:#38a3dc}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(16rem,1fr));gap:1rem}
+.note{background:var(--panel);border:2px solid var(--rule);padding:.8rem 1rem}
+.note h3{font-size:1.3rem;margin-bottom:.3rem}
+.note p{font-size:.93rem;margin:.3rem 0}
+.src{font-size:.84rem;color:var(--muted);columns:2 18rem;column-gap:2rem}
+.src a{display:block;break-inside:avoid;padding:.1rem 0;color:var(--muted)}
+footer{margin-top:2.5rem;border-top:2px solid var(--rule);padding-top:.8rem;font-size:.84rem;color:var(--muted)}
+
+/* map drawing */
+.m-park{fill:var(--park)} .m-water{fill:none;stroke:var(--water);stroke-width:12;stroke-linecap:round;stroke-linejoin:round}
+.m-case{fill:none;stroke:var(--case);stroke-linecap:round;stroke-linejoin:round}
+.m-st{fill:none;stroke:var(--street);stroke-linecap:round;stroke-linejoin:round}
+.m-lab{fill:var(--maptext);font-family:var(--ff-d);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.m-halo{fill:none;stroke:var(--panel);stroke-linecap:round;stroke-linejoin:round}
+.m-rt{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.m-metro{fill:none;stroke:var(--metro);stroke-width:4;stroke-dasharray:2 7;stroke-linecap:round}
+.m-pin{stroke:var(--panel);stroke-width:3}
+.m-pn{fill:#fff;font-family:var(--ff-d);font-weight:700;text-anchor:middle;dominant-baseline:central}
+.m-home{fill:var(--ink);stroke:var(--panel);stroke-width:3}
+.m-hl{fill:var(--paper);font-family:var(--ff-d);font-weight:700;text-anchor:middle;dominant-baseline:central}
+.m-plab{fill:var(--ink);font-family:var(--ff-b);font-weight:600;paint-order:stroke;stroke:var(--panel);stroke-width:4px;stroke-linejoin:round}
+.m-attr{fill:var(--maptext);font-family:var(--ff-b);opacity:.8}
+.omap .rg{transition:opacity .2s}
+.omap.hl .rg{opacity:.15}.omap.hl .rg.on{opacity:1}
+
+@media (max-width:860px){.mast-in{grid-template-columns:1fr}.db{grid-template-columns:1fr}}
+@media (max-width:560px){
+  h2{font-size:2rem}
+  .day summary{grid-template-columns:3rem minmax(0,1fr)}
+  .dn{grid-row:1/3;font-size:1.9rem}
+  .dr{grid-column:2;flex-direction:row;gap:.8rem;align-items:baseline;justify-content:flex-start;padding:0 .8rem .55rem;text-align:left}
+  .steps li{grid-template-columns:3.6rem 1.5rem minmax(0,1fr)}
+  .rseg b{font-size:1.25rem}.rseg span{font-size:.68rem}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+<style>
+:root{--tilefilter:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--tilefilter:brightness(.72) invert(1) contrast(.88) hue-rotate(180deg) saturate(.6)}}
+:root[data-theme="dark"]{--tilefilter:brightness(.72) invert(1) contrast(.88) hue-rotate(180deg) saturate(.6)}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.omap{height:clamp(380px,72vh,720px)}
+.dmap{aspect-ratio:3/2;max-width:100%}
+.omap,.dmap{position:relative;z-index:0;isolation:isolate}
+.leaflet-container{font-family:var(--ff-b);background:var(--land)}
+.leaflet-tile-pane{filter:var(--tilefilter)}
+.pinN,.pinH{display:grid;place-items:center;width:26px;height:26px;font:700 14px var(--ff-d);color:#fff;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.pinN{border-radius:50%}
+.pinH{background:#141517;border-radius:2px}
+.tipL{font:600 13px var(--ff-b);padding:1px 6px;border-radius:2px;box-shadow:none;border:1px solid #141517;background:#fff;color:#141517}
+.tipL::before{display:none}
+.rstat{margin:-.3rem 0 0}
+</style>
+<style>
+/* Même roadbook que Madrid : bandeau couleur lagon, carte d'ensemble, réglette par base, carnet jour par jour. Lave pour la base Sud, lagon pour la base Ouest. */
+:root{--bh:#2f7a3a;--mast:#0b6461;--b1:#c2410c;--b2:#0e8f8a;--b3:#6d3fc0;--car:#1d4fd8;--foot:#d6197c}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bh:#6fd08a;--mast:#0a4a48;--b1:#ff8a50;--b2:#4fd1c9;--b3:#b99bff;--car:#7aa2ff;--foot:#ff6fb4}}
+:root[data-theme="dark"]{--bh:#6fd08a;--mast:#0a4a48;--b1:#ff8a50;--b2:#4fd1c9;--b3:#b99bff;--car:#7aa2ff;--foot:#ff6fb4}
+.mast h1{font-size:clamp(3rem,9.5vw,5.4rem)}
+.vnote{background:var(--panel);border:2px solid var(--rule);border-left:8px solid var(--bh);padding:.7rem 1rem;max-width:48rem;margin:1rem 0}
+.vnote ul{margin:.3rem 0 0;padding-left:1.1rem;display:flex;flex-direction:column;gap:.25rem;font-size:.95rem}
+.flag.nw{border-color:var(--bh);color:var(--bh)}
+.road{font:600 1rem var(--ff-d);letter-spacing:.02em;color:var(--dc);margin:0 0 .5rem}
+.dtxt{font-size:.98rem;margin:0}
+.flag{display:inline-block;font:700 .8rem var(--ff-d);text-transform:uppercase;letter-spacing:.06em;border:2px solid var(--dc);color:var(--dc);padding:0 .45rem;margin-left:.5rem;vertical-align:1px}
+.basehead{display:flex;gap:.9rem;align-items:center;border-top:6px solid var(--bc);padding-top:.6rem;margin:2.4rem 0 .4rem}
+.bl{font:700 2.2rem var(--ff-d);width:3rem;height:3rem;display:grid;place-items:center;background:var(--bc);color:#fff;flex:none}
+.basehead h3{font-size:1.6rem;margin:0}
+.basehead p{margin:.1rem 0 0;color:var(--muted);font-size:.92rem}
+.legs td.i{width:1.6rem;padding-right:0}
+.lk{display:inline-block;width:1.1rem;height:.3rem;border-radius:2px;vertical-align:middle}
+.lk.car{background:var(--car)}.lk.foot{background:repeating-linear-gradient(90deg,var(--foot) 0 3px,transparent 3px 7px)}
+.tools{display:flex;flex-wrap:wrap;gap:.35rem;margin:.2rem 0 0}
+.lgd{display:flex;gap:1rem;font:600 .9rem var(--ff-d);text-transform:uppercase;letter-spacing:.05em;margin:.4rem 0 0}
+.lgd span{display:inline-flex;align-items:center;gap:.4rem}
+.box ul{margin:.3rem 0 0;padding-left:1.1rem;display:flex;flex-direction:column;gap:.3rem;font-size:.95rem}
+</style>
+</head>
+<body>
+<header class="mast">
+  <div class="mast-in">
+    <div>
+      <div class="stars" aria-hidden="true"></div>
+      <h1>La Réunion</h1>
+      <p class="dates">1er → 14 août 2027<br>Variante : deux nuits à Hell-Bourg, sans le Piton des Neiges</p>
+      <p class="lead">Saint-Pierre pour Langevin, le Trou de Fer et le volcan. La route des Laves jusqu'au cirque de Salazie, deux nuits à Hell-Bourg et une vraie descente dans Mafate. Puis la semaine au lagon à L'Ermitage et une dernière nuit près de l'aéroport. Chaque jour a sa carte, ses routes et ses randonnées calculées sur OpenStreetMap. Touche un jour pour le voir sur la carte.</p>
+      <dl class="facts">
+        <dt>Vols</dt><dd>arrivée dim. 1er à 9 h · départ sam. 14 à 8 h</dd>
+        <dt>Voyageurs</dt><dd>2 adultes, 4 enfants (3, 12, 14 et 16 ans)</dd>
+        <dt>Bases</dt><dd>Saint-Pierre 3 nuits · Hell-Bourg 2 · L'Ermitage 7 · Sainte-Marie 1</dd>
+        <dt>Route</dt><dd id="factCar">≈ 18 h de voiture sur le séjour</dd>
+        <dt>Randos</dt><dd id="factFoot">3 randonnées, dont le volcan et Mafate</dd>
+        <dt>Voiture</dt><dd>de location, de l'aéroport à l'aéroport</dd>
+        <dt>Valises</dt><dd>trois changements, le 4, le 6 et le 13 août</dd>
+      </dl>
+    </div>
+    <div class="mast-m">
+      <div class="omap" id="omap" role="region" aria-label="Carte d'ensemble du voyage"></div>
+      <div class="chips" id="chips"></div>
+      <div class="tools">
+        <button class="chip" type="button" id="bCar" aria-pressed="true"><i style="background:var(--car)"></i>Routes</button>
+        <button class="chip" type="button" id="bFoot" aria-pressed="true"><i style="background:var(--foot)"></i>Randos</button>
+        <button class="chip" type="button" id="bGpx">Exporter GPX</button>
+      </div>
+      <p class="mcap" id="status">Calcul des tracés sur OpenStreetMap…</p>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="ruler" id="ruler"></div>
+  <nav class="nav" aria-label="Sections">
+    <a href="#jours">Jours</a><a href="#reserver">À réserver</a><a href="#pratique">Pratique</a><a href="#sources">Sources</a><a href="../">← Version Piton des Neiges</a>
+  </nav>
+
+  <h2 id="jours">Le carnet</h2>
+  <p class="lead2">Les temps de route du texte sont des estimations hors bouchons. Sous chaque carte, le tableau donne les distances et temps calculés sur OpenStreetMap. Trait plein pour la voiture, pointillés pour la marche.</p>
+  <div class="vnote"><strong>Ce qui change par rapport à la version Piton des Neiges</strong><ul>
+    <li>Plus de nuit au refuge ni de lever de soleil à 3 070 m : plus de matériel grand froid pour la petite.</li>
+    <li>Mafate se fait de l'intérieur depuis Hell-Bourg (5 août), puis d'en haut au Maïdo (8 août).</li>
+    <li>Nouveau : les bassins de Langevin le jour de l'arrivée, la route des Laves jusqu'à Salazie, le village de Hell-Bourg, une journée sans voiture, Saint-Denis et la cascade Niagara.</li>
+    <li>Le Voile de la Mariée passe au 4 août, sur la route de Hell-Bourg.</li>
+    <li>Les valises bougent trois fois au lieu de deux.</li></ul></div>
+  <div id="days"></div>
+
+  <h2 id="reserver">À réserver</h2>
+  <div class="tw"><table class="tbl">
+    <thead><tr><th>Quoi</th><th>Quand</th><th>Détails</th></tr></thead>
+    <tbody>
+      <tr><td>Logement Saint-Pierre</td><td class="w">1er → 4 août</td><td>3 nuits.</td></tr>
+      <tr><td>Logement Hell-Bourg</td><td class="w">4 → 6 août</td><td>2 nuits. Surtout des gîtes et des chambres d'hôtes dans le village : l'offre pour 6 est limitée, à réserver en premier.</td></tr>
+      <tr><td>Logement L'Ermitage</td><td class="w">6 → 13 août</td><td>7 nuits.</td></tr>
+      <tr><td>Nuit à Sainte-Marie</td><td class="w">13 → 14 août</td><td>1 nuit à 10 min de l'aéroport, pour le vol de 8 h.</td></tr>
+      <tr><td>Tunnel de lave</td><td class="w">4 août, le matin</td><td>Départ de Saint-Philippe vers 9 h, pour enchaîner sur la route des Laves. Opérateur qui accepte une enfant de 3 ans, formule famille sans passages à ramper.</td></tr>
+      <tr><td>Parking du Col des Bœufs</td><td class="w">5 août</td><td>Gardé et payant. Arriver avant 8 h.</td></tr>
+      <tr><td>Sortie baleines</td><td class="w">9 août</td><td>Au départ du port de Saint-Gilles, avec un opérateur labellisé.</td></tr>
+      <tr><td>Option : survol en hélicoptère</td><td class="w">11 ou 12 août</td><td>Mafate, Salazie et le Trou de Fer vus du ciel, au départ de Saint-Gilles. Vérifier l'âge minimum pour la petite.</td></tr>
+      <tr><td>Voiture de location</td><td class="w">1er → 14 août</td><td>Prise à l'aéroport le 1er vers 9 h 30, rendue le 14 vers 6 h : vérifier que l'agence ouvre assez tôt, ou qu'elle accepte un retour avec boîte à clés. Un 7 places long, ou un coffre de toit pour les valises. Siège auto pour la petite.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="pratique">Pratique</h2>
+  <div class="notes">
+    <div class="note box"><h3>Pourquoi Hell-Bourg</h3><ul>
+      <li>Le Col des Bœufs, porte d'entrée de Mafate, est à 45 min : on descend à pied jusqu'à La Nouvelle et on remonte dans la journée, sans porter les sacs.</li>
+      <li>Le Voile de la Mariée est à 15 min, et le village se visite à pied le matin du départ.</li>
+      <li>Le trajet Saint-Pierre → Hell-Bourg par l'Est fait passer par les tunnels de lave et la route des Laves, sans revenir sur ses pas.</li>
+      <li>Le Trou de Fer reste depuis Saint-Pierre : en voiture, Bélouve est plus loin de Hell-Bourg (≈ 1 h 40) que de Saint-Pierre (≈ 1 h 15).</li></ul></div>
+    <div class="note box"><h3>Temps de route</h3><ul>
+      <li>Plus longues journées : le 4 août (≈ 2 h 40, coupées par le tunnel et les pauses) et le 6 août (≈ 1 h 45).</li>
+      <li>Le 7 août, la voiture reste garée.</li>
+      <li>Aux heures de pointe, comptez 30 min de plus autour de Saint-Denis et sur la route des Tamarins.</li></ul></div>
+    <div class="note box"><h3>Mafate avec la petite</h3><ul>
+      <li>La descente vers La Nouvelle est facile, la remontée est la partie dure : prévoir 2 h 30 et des pauses.</li>
+      <li>Marches et racines dans les passages ombragés : porte-bébé plutôt que poussette tout-terrain.</li>
+      <li>Les nuages montent vers 11 h : partir tôt, pique-niquer au village et remonter sans traîner.</li></ul></div>
+    <div class="note box"><h3>Avant chaque sortie</h3><ul>
+      <li>Vérifier l'ouverture des sentiers (ONF) et de l'enclos du volcan (OVPF ou préfecture).</li>
+      <li>Le 4 août, les valises sont dans la voiture pendant le tunnel : rien en vue, coffre fermé.</li>
+      <li>Les tracés OSRM peuvent s'écarter du sentier réel : pour la navigation, utilisez les traces GPS des sites de randonnée.</li></ul></div>
+  </div>
+
+  <h2 id="sources">Sources</h2>
+  <div class="src">
+    <a href="https://horizon-reunion.com/randonnees-reunion" target="_blank" rel="noopener">Horizon Réunion · randonnées, dénivelés et durées</a>
+    <a href="https://www.visorando.com/randonnee-la-nouvelle-le-belier/" target="_blank" rel="noopener">Visorando · La Nouvelle – Col des Bœufs</a>
+    <a href="https://generationvoyage.fr/?p=108495" target="_blank" rel="noopener">Generation Voyage · que faire à Hell-Bourg</a>
+    <a href="https://generationvoyage.fr/marches-la-reunion/" target="_blank" rel="noopener">Generation Voyage · marchés de La Réunion</a>
+    <a href="https://generationvoyage.fr/attraction/cascades-grand-galet-la-reunion/" target="_blank" rel="noopener">Generation Voyage · cascade de Grand Galet</a>
+    <a href="https://cascadesdefrance.fr/listing/cascade-niagara-sainte-suzanne-ile-de-la-reunion" target="_blank" rel="noopener">Cascades de France · cascade Niagara</a>
+    <a href="https://www.routard.com/fr/guide/afrique/reunion/cote-sud-et-sud-sauvage/piton-sainte-rose" target="_blank" rel="noopener">Routard · Piton Sainte-Rose et Notre-Dame-des-Laves</a>
+    <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap · données cartographiques</a>
+    <a href="https://routing.openstreetmap.de/" target="_blank" rel="noopener">FOSSGIS · calcul d'itinéraires OSRM</a>
+  </div>
+  <footer>Variante proposée le 30 octobre 2026. Vérifiez ouvertures et tarifs avant le départ.</footer>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+(function(){
+const P={
+ aero:[-20.8871,55.5163,"Aéroport Roland-Garros"],
+ stpierre:[-21.3393,55.4781,"Base 1 · Saint-Pierre"],
+ hellbourg:[-21.0645,55.5195,"Base 2 · Hell-Bourg"],
+ ermitage:[-21.0800,55.2245,"Base 3 · L'Ermitage"],
+ stemarie:[-20.8967,55.5497,"Étape · Sainte-Marie"],
+ langevin:[-21.3108,55.6416,"Cascade de Grand Galet (Langevin)"],
+ belouve:[-21.0700,55.5425,"Gîte de Bélouve"],
+ troufer:[-21.0755,55.5590,"Belvédère du Trou de Fer"],
+ passables:[-21.2120,55.6440,"Pas des Sables (Plaine des Sables)"],
+ bellecombe:[-21.2187,55.6886,"Pas de Bellecombe (2 311 m)"],
+ formica:[-21.2213,55.6986,"Formica Leo"],
+ dolomieu:[-21.2444,55.7139,"Cratère Dolomieu (≈2 500 m)"],
+ philippe:[-21.3590,55.7670,"Saint-Philippe (tunnel de lave)"],
+ anse:[-21.1797,55.8281,"Anse des Cascades"],
+ ndlaves:[-21.1560,55.8040,"Notre-Dame-des-Laves"],
+ voile:[-21.0366,55.5367,"Voile de la Mariée"],
+ colboeufs:[-21.0469,55.4524,"Col des Bœufs (parking gardé)"],
+ nouvelle:[-21.0687,55.4136,"La Nouvelle, Mafate"],
+ stpaul:[-21.0090,55.2700,"Marché forain de Saint-Paul"],
+ maido:[-21.0717,55.3833,"Belvédère du Maïdo (2 205 m)"],
+ portgilles:[-21.0510,55.2230,"Port de Saint-Gilles (sortie baleines)"],
+ kelonia:[-21.1530,55.2830,"Kélonia, observatoire des tortues"],
+ leu:[-21.1700,55.2880,"Lagon de Saint-Leu"],
+ aigrettes:[-21.0540,55.2370,"Bassin des Aigrettes"],
+ boucan:[-21.0270,55.2250,"Plage de Boucan Canot"],
+ jardin:[-20.8810,55.4520,"Jardin de l'État, Saint-Denis"],
+ niagara:[-20.9195,55.6040,"Cascade Niagara"]
+};
+const HOMES=[["stpierre",0],["hellbourg",1],["ermitage",2],["stemarie",3]];
+
+const S=[
+ {n:"Base 1",z:"Saint-Pierre",nights:"1 → 4 août · 3 nuits",c:"#c2410c",
+  why:"Le Sud : Langevin à 40 min, Trou de Fer et volcan à 1 h 15."},
+ {n:"Base 2",z:"Hell-Bourg",nights:"4 → 6 août · 2 nuits",c:"#2f7a3a",
+  why:"Au cœur du cirque de Salazie : Col des Bœufs à 45 min pour descendre dans Mafate, Voile de la Mariée à 15 min."},
+ {n:"Base 3",z:"L'Ermitage",nights:"6 → 13 août · 7 nuits",c:"#0e8f8a",
+  why:"La semaine calme au lagon. Maïdo, baleines, tortues et bassins à moins d'une heure."},
+ {n:"Étape",z:"Sainte-Marie",nights:"13 → 14 août · 1 nuit",c:"#6d3fc0",
+  why:"À 10 min de l'aéroport, pour le vol de 8 h sans réveil à 4 h."}
+];
+
+const D=[
+ {s:0,d:"Dim. 1er août",t:"Arrivée et bassins de Langevin",nw:1,road:"Aéroport → Saint-Pierre ≈ 1 h 10 · Saint-Pierre → Grand Galet ≈ 40 min (aller) · ≈ 40 min (retour)",
+  txt:"Atterrissage à 9 h, récupération de la voiture de location et route par la côte Ouest. Courses et déjeuner à Saint-Pierre. Les logements ouvrent souvent vers 15 h : en attendant, montée dans la vallée de la rivière Langevin jusqu'à la cascade de Grand Galet, à 500 m du parking, et ses bassins. L'eau est fraîche en août, les grands peuvent tenter. Installation en fin d'après-midi, coucher tôt.",
+  ado:"Être le premier à mettre la tête sous l'eau de la Langevin.",
+  legs:[{m:"car",p:["aero","stpierre"]},{m:"car",p:["stpierre","langevin","stpierre"]}]},
+ {s:0,d:"Lun. 2 août",t:"Le Trou de Fer",road:"Saint-Pierre → Bélouve ≈ 1 h 15 (aller) · ≈ 1 h 15 (retour)",
+  txt:"Route par Le Tampon, la Plaine des Cafres et la Plaine-des-Palmistes jusqu'au domaine de Bélouve. Boucle du Trou de Fer dans la forêt de tamarins : 8 km, 150 m de dénivelé, 3 h, jusqu'au belvédère sur le gouffre où tombent six cascades. Retour pour le goûter.",
+  ado:"Compter les cascades du Trou de Fer depuis le belvédère.",
+  legs:[{m:"car",p:["stpierre","belouve"]},{m:"foot",p:["belouve","troufer","belouve"],lab:"Boucle du Trou de Fer · 8 km · +150 m · 3 h"},{m:"car",p:["belouve","stpierre"]}]},
+ {s:0,d:"Mar. 3 août",t:"Le Piton de la Fournaise",road:"Saint-Pierre → Pas de Bellecombe ≈ 1 h 15 (aller) · ≈ 1 h 15 (retour)",
+  txt:"Départ 5 h, les nuages montent vers 11 h. Traversée de la Plaine des Sables. Tous ensemble jusqu'au cratère Dolomieu : 11,5 km aller-retour, 530 m de dénivelé, 5 h 30, avec une pause au Formica Leo. Polaire et bonnet pour la petite au départ, il fait 5 à 10 °C. Vérifier la veille que l'enclos est ouvert (site de l'OVPF ou de la préfecture). Après-midi sieste et lagon.",
+  ado:"Regarder au fond d'un des cratères les plus actifs du monde.",
+  legs:[{m:"car",p:["stpierre","passables","bellecombe"]},{m:"foot",p:["bellecombe","formica","dolomieu"],lab:"Bellecombe → cratère Dolomieu · 11,5 km AR · +530 m · 5 h 30"},{m:"car",p:["bellecombe","stpierre"]}]},
+ {s:1,d:"Mer. 4 août",t:"La route des Laves jusqu'à Salazie",nw:1,bag:"Changement de base",road:"Saint-Pierre → Saint-Philippe ≈ 45 min · Saint-Philippe → Anse des Cascades ≈ 30 min · Anse des Cascades → Hell-Bourg ≈ 1 h 20",
+  txt:"Valises dans la voiture, départ 7 h 45. Visite guidée d'un tunnel de lave à Saint-Philippe, en formule famille (casque et frontale fournis). Puis la route des Laves à travers le Grand Brûlé, où les coulées ont atteint la mer. Pique-nique sous les cocotiers de l'Anse des Cascades, arrêt à Notre-Dame-des-Laves, l'église devant laquelle la coulée de 1977 s'est arrêtée. Montée dans le cirque de Salazie, arrêt au Voile de la Mariée, arrivée à Hell-Bourg vers 17 h.",
+  ado:"Trouver la trace de la coulée de 1977 devant l'église.",
+  legs:[{m:"car",p:["stpierre","philippe","anse","ndlaves","voile","hellbourg"]}]},
+ {s:1,d:"Jeu. 5 août",t:"Descendre dans Mafate",nw:1,road:"Hell-Bourg → Col des Bœufs ≈ 45 min (aller) · ≈ 45 min (retour)",
+  txt:"Départ 7 h pour être au parking du Col des Bœufs avant 8 h. Descente dans le cirque de Mafate, où aucune route n'arrive, par la Plaine des Tamarins et ses arbres tordus, jusqu'à l'îlet de La Nouvelle : environ 6 km et 2 h. Pique-nique ou carri au village, puis remontée par le même sentier, environ 2 h 30. En tout 12 km et environ 600 m de dénivelé, la petite en porte-bébé. Mafate de l'intérieur, sans y dormir et sans porter les sacs.",
+  ado:"Voir un hélicoptère ravitailler l'îlet : c'est le seul moyen d'y livrer les marchandises.",
+  legs:[{m:"car",p:["hellbourg","colboeufs"]},{m:"foot",p:["colboeufs","nouvelle","colboeufs"],lab:"Col des Bœufs → La Nouvelle · ≈ 12 km AR · ≈ +600 m · 5 h"},{m:"car",p:["colboeufs","hellbourg"]}]},
+ {s:2,d:"Ven. 6 août",t:"Hell-Bourg, puis le marché de Saint-Paul",nw:1,bag:"Changement de base",road:"Hell-Bourg → Saint-Paul ≈ 1 h 30 · Saint-Paul → L'Ermitage ≈ 15 min",
+  txt:"Matinée à pied dans Hell-Bourg, classé parmi les plus beaux villages de France : cases créoles colorées, Maison Folio et son jardin (visite guidée), cimetière fleuri, ruines des anciens thermes au bord de la rivière. Déjeuner créole au village. Descente vers la côte, puis le marché forain de Saint-Paul, ouvert le vendredi toute la journée : samoussas, fruits, vanille et épices. Installation à L'Ermitage en fin d'après-midi.",
+  ado:"Trouver la case créole la plus colorée du village.",
+  legs:[{m:"car",p:["hellbourg","stpaul","ermitage"]}]},
+ {s:2,d:"Sam. 7 août",t:"Rien",nw:1,road:"Pas de voiture",
+  txt:"Grasse matinée, lagon, sieste, lagon. Après trois grosses journées, la voiture reste garée.",
+  ado:"Battre le record de la plus longue sieste de la famille.",
+  legs:[]},
+ {s:2,d:"Dim. 8 août",t:"Lever de soleil sur Mafate",road:"L'Ermitage → Maïdo ≈ 1 h (aller) · ≈ 1 h (retour)",
+  txt:"Départ 5 h pour voir le soleil se lever sur tout le cirque de Mafate depuis le belvédère du Maïdo, à 2 205 m, trois jours après y être descendus. Petit-déjeuner là-haut. Retour en fin de matinée, après-midi au lagon.",
+  ado:"Retrouver La Nouvelle depuis le belvédère.",
+  legs:[{m:"car",p:["ermitage","maido","ermitage"]}]},
+ {s:2,d:"Lun. 9 août",t:"Les baleines",road:"L'Ermitage → port de Saint-Gilles ≈ 10 min",
+  txt:"Sortie baleines le matin depuis le port de Saint-Gilles, avec un opérateur labellisé : août est la pleine saison. Après-midi au lagon.",
+  ado:"Entendre le souffle d'une baleine.",
+  legs:[{m:"car",p:["ermitage","portgilles","ermitage"]}]},
+ {s:2,d:"Mar. 10 août",t:"Tortues à Saint-Leu",road:"L'Ermitage → Saint-Leu ≈ 20 min",
+  txt:"Kélonia le matin, puis masque et tuba avec les tortues dans le lagon de Saint-Leu. Pique-nique sur la plage.",
+  ado:"Nager à côté d'une tortue sans la toucher.",
+  legs:[{m:"car",p:["ermitage","kelonia","leu","ermitage"]}]},
+ {s:2,d:"Mer. 11 août",t:"Jour de secours, ou bassins",road:"L'Ermitage → Bassin des Aigrettes ≈ 10 min",
+  txt:"Si le volcan a été raté à cause des nuages, c'est le jour pour y retourner (environ 2 h de route). Sinon : baignade en eau douce au Bassin des Aigrettes, dans la ravine Saint-Gilles, puis lagon. Option : survol des cirques en hélicoptère.",
+  ado:"Sauter dans le Bassin des Aigrettes.",
+  legs:[{m:"car",p:["ermitage","aigrettes","ermitage"]}]},
+ {s:2,d:"Jeu. 12 août",t:"Dernier jour au lagon",road:"L'Ermitage → Boucan Canot ≈ 10 min",
+  txt:"Masque et tuba dans le lagon de L'Ermitage le matin, quand l'eau est la plus claire. Coucher de soleil sur la plage de Boucan Canot et dernier carri en famille.",
+  ado:"Photographier le rayon vert au coucher du soleil.",
+  legs:[{m:"car",p:["ermitage","boucan","ermitage"]}]},
+ {s:3,d:"Ven. 13 août",t:"Saint-Denis et la cascade Niagara",nw:1,bag:"Changement de base",road:"L'Ermitage → Saint-Denis ≈ 45 min · Saint-Denis → cascade Niagara ≈ 25 min · Niagara → Sainte-Marie ≈ 10 min",
+  txt:"Départ en milieu de matinée, valises dans la voiture. Saint-Denis : Jardin de l'État, cases créoles de la rue de Paris, le Barachois face à la mer. Déjeuner en ville. L'après-midi, la cascade Niagara à Sainte-Suzanne, à 5 min à pied du parking. Nuit à Sainte-Marie, valises bouclées, coucher tôt.",
+  ado:"Trouver la plus belle case créole de la rue de Paris.",
+  legs:[{m:"car",p:["ermitage","jardin","niagara","stemarie"]}]},
+ {s:3,d:"Sam. 14 août",t:"Envol à 8 h",road:"Sainte-Marie → aéroport ≈ 10 min",
+  txt:"Réveil 5 h 15, départ 5 h 45. Plein d'essence et restitution de la voiture à l'aéroport vers 6 h, enregistrement 2 h avant le vol de 8 h. Petit-déjeuner à l'aéroport.",
+  ado:"Dire au revoir au Piton des Neiges par le hublot, s'il se montre.",
+  legs:[{m:"car",p:["stemarie","aero"]}]}
+];
+
+const BC=["--b1","--bh","--b2","--b3"];
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim()||"#0e8f8a";
+const TILES="https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const ATTR='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · itinéraires <a href="https://routing.openstreetmap.de/">FOSSGIS OSRM</a>';
+const ROUTER={car:'https://routing.openstreetmap.de/routed-car/route/v1/driving/',foot:'https://routing.openstreetmap.de/routed-foot/route/v1/driving/'};
+const fkm=m=>(m/1000).toFixed(1).replace('.',',');
+const fT=s=>{const h=Math.floor(s/3600),m=Math.round(s%3600/60);return (h?h+' h ':'')+String(m).padStart(h?2:1,'0')+' min';};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const name=k=>P[k][2].replace(/^(Base \d|Étape) · /,'');
+const ll=k=>[P[k][0],P[k][1]];
+
+/* étoile : une silhouette de piton à la place des étoiles de Madrid */
+document.querySelector('.stars').innerHTML='<svg viewBox="0 0 64 24" style="width:4rem;height:1.5rem"><path d="M0 24 L14 9 L20 14 L32 1 L44 13 L50 8 L64 24 Z" fill="currentColor"/></svg>';
+
+function homeIcon(i){return L.divIcon({className:"",html:`<span class="pinH" style="background:var(${BC[i]})">${i+1}</span>`,iconSize:[26,26],iconAnchor:[13,13]});}
+function lineStyle(m,hi){return m==='car'?{color:css('--car'),weight:hi?6:4,opacity:hi?.95:.8}:{color:css('--foot'),weight:hi?6:4.5,opacity:1,dashArray:'2 8',lineCap:'round'};}
+
+/* plan d'ensemble */
+const om=L.map('omap',{scrollWheelZoom:false,zoomSnap:.25,dragging:!L.Browser.mobile,tap:false});
+L.tileLayer(TILES,{maxZoom:18,attribution:ATTR}).addTo(om);
+const carL=L.layerGroup().addTo(om),footL=L.layerGroup().addTo(om);
+const used=new Set();D.forEach(d=>d.legs.forEach(l=>l.p.forEach(k=>used.add(k))));
+const homeKeys=HOMES.map(h=>h[0]);
+used.forEach(k=>{if(homeKeys.includes(k))return;L.circleMarker(ll(k),{radius:4.5,color:'#141517',weight:2,fillColor:'#fff',fillOpacity:1}).bindPopup('<b>'+name(k)+'</b>').addTo(om);});
+HOMES.forEach(([k,i])=>L.marker(ll(k),{icon:homeIcon(i),zIndexOffset:1000,title:S[i].z}).addTo(om));
+const allB=L.latLngBounds(D.flatMap(d=>d.legs.flatMap(l=>l.p.map(ll))));
+om.fitBounds(allB,{padding:[12,12]});
+
+/* puces jours, réglette par base */
+const chips=document.getElementById('chips');
+function highlight(i){
+  D.forEach((d,j)=>d.legs.forEach(l=>{if(!l.o)return;const hi=i===null||j===i;l.o.setStyle(Object.assign(lineStyle(l.m,i!==null&&j===i),{opacity:hi?(l.m==='car'?.9:1):.12}));if(i!==null&&j===i)l.o.bringToFront();}));
+  if(i===null){om.fitBounds(allB,{padding:[12,12]});return;}
+  const b=L.latLngBounds(D[i].legs.flatMap(l=>l.res?l.res.geo:l.p.map(ll)));if(b.isValid())om.fitBounds(b,{padding:[24,24],maxZoom:13});
+}
+D.forEach((d,i)=>{
+  const b=document.createElement('button');b.className='chip';b.type='button';b.setAttribute('aria-pressed','false');b.title=d.d+' · '+d.t;
+  b.innerHTML=`<i style="background:var(${BC[d.s]})"></i>${i+1}`;
+  b.addEventListener('click',()=>{const on=b.getAttribute('aria-pressed')!=='true';chips.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed','false'));if(on){b.setAttribute('aria-pressed','true');highlight(i);}else highlight(null);});
+  chips.appendChild(b);
+});
+const ruler=document.getElementById('ruler');
+S.forEach((s,i)=>{const a=document.createElement('a');a.className='rseg';a.href='#base'+i;a.style.background=`var(${BC[i]})`;a.innerHTML=`<b class="num" id="rb${i}">${s.z}</b><span id="rs${i}">${s.nights}</span>`;ruler.appendChild(a);});
+function tog(id,layer){const b=document.getElementById(id);b.onclick=()=>{const on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',on);on?layer.addTo(om):om.removeLayer(layer);};}
+tog('bCar',carL);tog('bFoot',footL);
+
+/* carnet */
+const host=document.getElementById('days');let cur=-1;
+D.forEach((d,i)=>{
+  if(d.s!==cur){cur=d.s;const s=S[cur];const h=document.createElement('div');h.className='basehead';h.id='base'+cur;h.style.setProperty('--bc',`var(${BC[cur]})`);
+    h.innerHTML=`<span class="bl">${cur+1}</span><div><h3>${s.n} · ${s.z}</h3><p>${s.nights} · ${s.why}</p></div>`;host.appendChild(h);}
+  const det=document.createElement('details');det.className='day';det.id='j'+(i+1);det.open=true;det.style.setProperty('--dc',`var(${BC[d.s]})`);
+  det.innerHTML=`<summary><span class="dn">${i+1}</span><span class="dt">${d.t}${d.nw?'<span class="flag nw">Nouveau</span>':''}${d.bag?'<span class="flag">'+d.bag+'</span>':''}</span><span class="dr"><span class="dd">${d.d}</span><span class="dk num" id="dk${i}">${d.legs.length?'…':'repos'}</span></span></summary>`;
+  const body=document.createElement('div');body.className='db';
+  const left=document.createElement('div');left.className='dleft';
+  left.innerHTML=`${d.road?'<p class="road">'+d.road+'</p>':''}<p class="dtxt">${d.txt}</p><p class="ado"><strong>Défi ados</strong>${d.ado}</p>`;
+  const side=document.createElement('div');side.className='dside';
+  if(d.legs.length){
+    const md=document.createElement('div');md.className='dmap';md.id='map'+i;md.setAttribute('role','region');md.setAttribute('aria-label','Carte du '+d.d);side.appendChild(md);
+    const tb=document.createElement('table');tb.className='legs';tb.id='legs'+i;side.appendChild(tb);
+    const carPts=[];d.legs.filter(l=>l.m==='car').forEach(l=>l.p.forEach(k=>{if(carPts[carPts.length-1]!==k)carPts.push(k);}));
+    if(carPts.length>1){const g=carPts.map(k=>P[k][0].toFixed(5)+','+P[k][1].toFixed(5));
+      const url='https://www.google.com/maps/dir/?api=1&travelmode=driving&origin='+g[0]+'&destination='+g[g.length-1]+(g.length>2?'&waypoints='+encodeURIComponent(g.slice(1,-1).join('|')):'');
+      const a=document.createElement('a');a.className='gm';a.href=url;a.target='_blank';a.rel='noopener';a.innerHTML='Itinéraire en voiture <span>Google Maps ↗</span>';side.appendChild(a);}
+  }else{const p=document.createElement('p');p.className='note';p.textContent='Pas de voiture aujourd\'hui.';side.appendChild(p);}
+  body.appendChild(left);body.appendChild(side);det.appendChild(body);host.appendChild(det);
+  if(d.legs.length){
+    const m=L.map('map'+i,{scrollWheelZoom:false,zoomSnap:.25,dragging:!L.Browser.mobile,tap:false});
+    L.tileLayer(TILES,{maxZoom:18,attribution:ATTR}).addTo(m);
+    const pts=new Set();d.legs.forEach(l=>l.p.forEach(k=>pts.add(k)));
+    pts.forEach(k=>{const h=HOMES.find(x=>x[0]===k);if(h)L.marker(ll(k),{icon:homeIcon(h[1]),zIndexOffset:1000}).addTo(m);
+      else L.circleMarker(ll(k),{radius:5,color:'#141517',weight:2,fillColor:'#fff',fillOpacity:1}).bindTooltip(name(k),{direction:'top'}).addTo(m);});
+    d.legs.forEach(l=>{l.d=L.polyline(l.p.map(ll),Object.assign(lineStyle(l.m),{opacity:.5,dashArray:'6 8'})).addTo(m);});
+    m.fitBounds(L.latLngBounds([...pts].map(ll)),{padding:[24,24],maxZoom:13});
+    d.map=m;
+  }
+  d.legs.forEach(l=>{l.o=L.polyline(l.p.map(ll),Object.assign(lineStyle(l.m),{opacity:.4,dashArray:'6 8'})).addTo(l.m==='car'?carL:footL);});
+  renderLegs(i);
+});
+
+function renderLegs(i){
+  const d=D[i];const tb=document.getElementById('legs'+i);if(!tb)return;
+  let rows='',car=0,carT=0,foot=0,okAll=true;
+  d.legs.forEach(l=>{const lab=l.lab||l.p.map(name).join(' → ');
+    if(l.res&&l.res.ok){if(l.m==='car'){car+=l.res.dist;carT+=l.res.dur;}else foot+=l.res.dist;}else okAll=false;
+    const km=l.res&&l.res.ok?fkm(l.res.dist)+' km':(l.res?'approx.':'…');
+    const t=l.res&&l.res.ok&&l.m==='car'?fT(l.res.dur):(l.m==='foot'?'voir texte':'');
+    rows+=`<tr><td class="i"><span class="lk ${l.m}"></span></td><td>${lab}</td><td class="k">${km}</td><td class="k">${t}</td></tr>`;});
+  const tot=[car?'🚗 '+fT(carT):'',foot?'à pied '+fkm(foot)+' km':''].filter(Boolean).join(' · ');
+  tb.innerHTML=`<thead><tr><th colspan="2">Tronçon</th><th style="text-align:right">km</th><th style="text-align:right">temps</th></tr></thead><tbody>${rows}</tbody>`+(car?`<tfoot><tr><td colspan="2">Voiture du jour</td><td class="k">${fkm(car)}</td><td class="k">${fT(carT)}</td></tr></tfoot>`:'');
+  document.getElementById('dk'+i).textContent=car?fT(carT)+' de route':(foot?fkm(foot)+' km à pied':(d.legs.length?'…':'repos'));
+}
+
+function cacheGet(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch(e){return null;}}
+function cacheSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+async function route(leg){
+  const coords=leg.p.map(k=>P[k][1].toFixed(5)+','+P[k][0].toFixed(5)).join(';');
+  const key='reunion-osrm-v1-'+leg.m+'-'+coords;const c=cacheGet(key);if(c)return c;
+  for(let i=0;i<3;i++){
+    try{const r=await fetch(ROUTER[leg.m]+coords+'?overview=full&geometries=geojson');if(!r.ok)throw 0;
+      const j=await r.json();if(j.code!=='Ok')throw 0;
+      const res={geo:j.routes[0].geometry.coordinates.map(c=>[+c[1].toFixed(5),+c[0].toFixed(5)]),dist:j.routes[0].distance,dur:j.routes[0].duration,ok:1};
+      cacheSet(key,res);return res;}catch(e){await sleep(800*(i+1));}
+  }
+  return {geo:leg.p.map(ll),ok:0};
+}
+const st=document.getElementById('status');
+(async()=>{
+  const all=D.flatMap((d,i)=>d.legs.map(l=>[i,l]));let n=0,fails=0;
+  for(const [i,l] of all){
+    l.res=await route(l);n++;if(!l.res.ok)fails++;
+    if(l.res.ok){l.o.setLatLngs(l.res.geo);l.o.setStyle(lineStyle(l.m));if(l.d){l.d.setLatLngs(l.res.geo);l.d.setStyle(lineStyle(l.m));}}
+    renderLegs(i);st.textContent='Calcul des tracés : '+n+'/'+all.length;await sleep(150);
+  }
+  D.forEach(d=>{if(d.map){const b=L.latLngBounds(d.legs.flatMap(l=>l.res.geo));d.map.fitBounds(b,{padding:[24,24],maxZoom:13});}});
+  let car=0,foot=0;const bs=[0,0,0,0];all.forEach(([i,l])=>{if(!l.res.ok)return;if(l.m==='car'){car+=l.res.dur;bs[D[i].s]+=l.res.dur;}else foot+=l.res.dist;});
+  if(car){document.getElementById('factCar').textContent=fT(car)+' de voiture sur le séjour';S.forEach((s,i)=>document.getElementById('rs'+i).textContent=s.nights.split(' · ')[0]+' · '+fT(bs[i])+' de route');}
+  if(foot)document.getElementById('factFoot').textContent='3 randonnées, '+fkm(foot)+' km à pied';
+  st.textContent=fails?fails+' tracé(s) approximatif(s) : serveur de calcul injoignable, rechargez plus tard.':'Routes et randonnées calculées sur OpenStreetMap. Trait plein : voiture · pointillés : marche.';
+})();
+
+document.getElementById('bGpx').onclick=()=>{
+  const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  let x='<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Reunion 2027" xmlns="http://www.topografix.com/GPX/1/1">\n';
+  used.forEach(k=>{x+=`<wpt lat="${P[k][0]}" lon="${P[k][1]}"><name>${esc(P[k][2])}</name></wpt>\n`;});
+  D.forEach(d=>d.legs.forEach(l=>{if(!l.res)return;x+=`<trk><name>${esc(d.d+' – '+(l.m==='car'?'Route':'Rando')+' – '+(l.lab||l.p.map(k=>P[k][2]).join(' > ')))}</name><trkseg>`+l.res.geo.map(p=>`<trkpt lat="${p[0].toFixed(6)}" lon="${p[1].toFixed(6)}"/>`).join('')+'</trkseg></trk>\n';}));
+  x+='</gpx>';
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([x],{type:'application/gpx+xml'}));a.download='reunion-aout-2027.gpx';document.body.appendChild(a);a.click();a.remove();
+};
+})();
+</script>
+</body>
+</html>
