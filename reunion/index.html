@@ -180,6 +180,15 @@ footer{margin-top:2.5rem;border-top:2px solid var(--rule);padding-top:.8rem;font
 .basehead{display:flex;gap:.9rem;align-items:center;border-top:6px solid var(--bc);padding-top:.6rem;margin:2.4rem 0 .4rem}
 .bl{font:700 2.2rem var(--ff-d);width:3rem;height:3rem;display:grid;place-items:center;background:var(--bc);color:#fff;flex:none}
 .basehead h3{font-size:1.6rem;margin:0}
+.basehead>div{min-width:0;flex:1}
+.bimg{width:10rem;max-width:32%;aspect-ratio:3/2;object-fit:cover;border:2px solid var(--rule);flex:none;background:var(--hair)}
+.phs{display:grid;grid-template-columns:repeat(auto-fill,minmax(10.5rem,1fr));gap:.6rem;margin-top:1rem}
+.ph{margin:0;border:2px solid var(--rule);background:var(--panel);min-width:0}
+.ph img{display:block;width:100%;max-width:100%;aspect-ratio:3/2;object-fit:cover;background:var(--hair)}
+.ph figcaption{font:600 .95rem/1.2 var(--ff-d);padding:.35rem .5rem .4rem;letter-spacing:.02em}
+.ph figcaption small{display:block;font:400 .72rem/1.3 var(--ff-b);letter-spacing:0;color:var(--muted);margin-top:.15rem;overflow-wrap:anywhere}
+#credits a{color:var(--muted)}
+@media (max-width:560px){.phs{grid-template-columns:repeat(2,minmax(0,1fr))}.ph figcaption{font-size:.85rem}.bimg{width:6rem}}
 .basehead p{margin:.1rem 0 0;color:var(--muted);font-size:.92rem}
 .legs td.i{width:1.6rem;padding-right:0}
 .lk{display:inline-block;width:1.1rem;height:.3rem;border-radius:2px;vertical-align:middle}
@@ -278,6 +287,8 @@ footer{margin-top:2.5rem;border-top:2px solid var(--rule);padding-top:.8rem;font
     <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap · données cartographiques</a>
     <a href="https://routing.openstreetmap.de/" target="_blank" rel="noopener">FOSSGIS · calcul d'itinéraires OSRM</a>
   </div>
+  <h3 id="photos-credits" hidden>Photos</h3>
+  <div class="src" id="credits" hidden></div>
   <footer>Programme mis à jour le 30 octobre 2026, distances des randonnées vérifiées. Vérifiez ouvertures et tarifs avant le départ.</footer>
 </div>
 
@@ -401,6 +412,48 @@ document.querySelector('.stars').innerHTML='<svg viewBox="0 0 64 24" style="widt
 function homeIcon(i){return L.divIcon({className:"",html:`<span class="pinH" style="background:var(${BC[i]})">${i+1}</span>`,iconSize:[26,26],iconAnchor:[13,13]});}
 function lineStyle(m,hi){return m==='car'?{color:css('--car'),weight:hi?6:4,opacity:hi?.95:.8}:{color:css('--foot'),weight:hi?6:4.5,opacity:1,dashArray:'2 8',lineCap:'round'};}
 
+/* photos : fichiers ou catégories de Wikimedia Commons, auteur et licence lus à l'ouverture */
+const PH={
+ hellbourg:'File:Hell-Bourg 2015.jpg',
+ stpierre:'File:Reunion SaintPierre PointeDuDiable.JPG',
+ ermitage:"File:L'Ermitage beach, Réunion.jpg",
+ voile:'File:Cascade "Le Voile de la Mariée" à Salazie (La Réunion).jpg',
+ colboeufs:'File:Cirque de Mafate - Plaine des tamarins.jpg',
+ nouvelle:'Category:La Nouvelle',
+ ndlaves:'File:Notre-Dame-des-Laves 2015.jpg',
+ anse:'File:Cascade-Anse-des-Cascades.JPG',
+ langevin:'File:Cascade-Grand-Galet.JPG',
+ passables:'File:Réunion Lacets route Pas des Sables.jpg',
+ bellecombe:'Category:Pas de Bellecombe-Jacob',
+ dolomieu:'File:Cratère-Dolomieu-Piton-Fournaise.jpg',
+ troufer:'File:Trou-de-Fer.jpg',
+ philippe:'File:Réunion Piton de la Fournaise Lava tube exploration.jpg',
+ capmechant:'Category:Cap Méchant',
+ grandanse:'File:Plage de Grande Anse vers le sud.JPG',
+ gouffre:"Category:Gouffre de L'Étang-Salé",
+ stpaul:'File:Saint-Paul Marche 1.jpg',
+ maido:'File:Ile de la Réunion - cirque de Mafate depuis le Piton Maido.jpg',
+ portgilles:'File:Megaptera novaeangliae Réunion island 01 hf.jpg',
+ kelonia:'File:Entrée-Kélonia.JPG',
+ leu:'File:Chelonia mydas is going for the air.jpg',
+ aigrettes:'File:St.Gillles-bassin.aigrettes.JPG',
+ boucan:'File:Boucan-Canot (Île de la Réunion) (4133754184).jpg',
+ jardin:'File:Saint-Denis @ La Réunion.jpg',
+ niagara:'File:Cascade Niagara.jpg',
+ cilaos:'File:Cirque de Cilaos bannière.jpg',
+ dufour:'File:Gite Caverne Dufour.jpg',
+ piton:'File:Piton des Neiges lever de soleil.jpg',
+ rvb:"File:Ile de la Réunion - cirque de Mafate depuis le Cap Noir à Dos d'Ane 2.jpg"
+};
+const PHCAP={colboeufs:'Plaine des Tamarins, Mafate',nouvelle:'La Nouvelle, Mafate',maido:'Mafate depuis le Maïdo',portgilles:'Baleine à bosse',leu:'Tortue verte',jardin:'Saint-Denis',philippe:'Tunnel de lave',rvb:'Mafate depuis Dos d\'Âne',stpaul:'Marché de Saint-Paul',passables:'Route du Pas des Sables'};
+const phCap=k=>PHCAP[k]||(P[k]?P[k][2].replace(/^(Base \d|Étape) · /,'').replace(/ \(.*\)$/,''):k);
+function photoStrip(keys){
+  const w=document.createElement('div');w.className='phs';
+  keys.forEach(k=>{const f=document.createElement('figure');f.className='ph';f.dataset.k=k;f.hidden=true;
+    f.innerHTML=`<img alt="${phCap(k).replace(/"/g,'&quot;')}" loading="lazy" decoding="async"><figcaption>${phCap(k)}<small></small></figcaption>`;w.appendChild(f);});
+  return w;
+}
+
 /* plan d'ensemble */
 const om=L.map('omap',{scrollWheelZoom:false,zoomSnap:.25,dragging:!L.Browser.mobile,tap:false});
 L.tileLayer(TILES,{maxZoom:18,attribution:ATTR}).addTo(om);
@@ -434,12 +487,16 @@ tog('bCar',carL);tog('bFoot',footL);
 const host=document.getElementById('days');let cur=-1;
 D.forEach((d,i)=>{
   if(d.s!==cur){cur=d.s;const s=S[cur];const h=document.createElement('div');h.className='basehead';h.id='base'+cur;h.style.setProperty('--bc',`var(${BC[cur]})`);
-    h.innerHTML=`<span class="bl">${cur+1}</span><div><h3>${s.n} · ${s.z}</h3><p>${s.nights} · ${s.why}</p></div>`;host.appendChild(h);}
+    const hk=(HOMES.find(x=>x[1]===cur)||[])[0];
+    h.innerHTML=`<span class="bl">${cur+1}</span><div><h3>${s.n} · ${s.z}</h3><p>${s.nights} · ${s.why}</p></div>${hk&&PH[hk]?'<img class="bimg" data-k="'+hk+'" hidden alt="'+s.z+'">':''}`;host.appendChild(h);}
   const det=document.createElement('details');det.className='day';det.id='j'+(i+1);det.open=true;det.style.setProperty('--dc',`var(${BC[d.s]})`);
   det.innerHTML=`<summary><span class="dn">${i+1}</span><span class="dt">${d.t}${d.bag?'<span class="flag">'+d.bag+'</span>':''}</span><span class="dr"><span class="dd">${d.d}</span><span class="dk num" id="dk${i}">${d.legs.length?'…':'repos'}</span></span></summary>`;
   const body=document.createElement('div');body.className='db';
   const left=document.createElement('div');left.className='dleft';
   left.innerHTML=`${d.road?'<p class="road">'+d.road+'</p>':''}<p class="dtxt">${d.txt}</p><p class="ado"><strong>Défi ados</strong>${d.ado}</p>`;
+  {const pk=[];d.legs.forEach(l=>l.p.forEach(k=>{if(PH[k]&&!homeKeys.includes(k)&&!pk.includes(k))pk.push(k);}));
+   if(!pk.length){const hk=(HOMES.find(x=>x[1]===d.s)||[])[0];if(hk&&PH[hk])pk.push(hk);}
+   if(pk.length)left.appendChild(photoStrip(pk.slice(0,3)));}
   const side=document.createElement('div');side.className='dside';
   if(d.legs.length){
     const md=document.createElement('div');md.className='dmap';md.id='map'+i;md.setAttribute('role','region');md.setAttribute('aria-label','Carte du '+d.d);side.appendChild(md);
@@ -503,6 +560,48 @@ const st=document.getElementById('status');
   if(car){document.getElementById('factCar').textContent=fT(car)+' de voiture sur le séjour';S.forEach((s,i)=>document.getElementById('rs'+i).textContent=s.nights.split(' · ')[0]+' · '+fT(bs[i])+' de route');}
   if(foot)document.getElementById('factFoot').textContent='4 randonnées, '+fkm(foot)+' km à pied';
   st.textContent=fails?fails+' tracé(s) approximatif(s) : serveur de calcul injoignable, rechargez plus tard.':'Routes et randonnées calculées sur OpenStreetMap. Trait plein : voiture · pointillés : marche.';
+})();
+
+(async()=>{
+  const els=[...document.querySelectorAll('[data-k]')];if(!els.length)return;
+  const keys=[...new Set(els.map(e=>e.dataset.k))];
+  const CK='reunion-photos-v1';let info=null;
+  try{const c=localStorage.getItem(CK);if(c){const o=JSON.parse(c);if(keys.every(k=>k in o))info=o;}}catch(e){}
+  if(!info){
+    info={};
+    const API='https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&prop=imageinfo&iiprop=url|size|extmetadata&iiextmetadatafilter=Artist|LicenseShortName&iiurlwidth=640';
+    const txt=h=>h?new DOMParser().parseFromString(h,'text/html').body.textContent.replace(/\s+/g,' ').trim():'';
+    const pack=pg=>{const ii=pg&&pg.imageinfo&&pg.imageinfo[0];if(!ii||!ii.thumburl)return null;const m=ii.extmetadata||{};
+      return {u:ii.thumburl,p:ii.descriptionurl,a:txt(m.Artist&&m.Artist.value)||'auteur inconnu',l:txt(m.LicenseShortName&&m.LicenseShortName.value)};};
+    try{
+      const files=keys.filter(k=>PH[k].startsWith('File:'));
+      if(files.length){
+        const j=await (await fetch(API+'&titles='+encodeURIComponent(files.map(k=>PH[k]).join('|')))).json();
+        const norm={};((j.query&&j.query.normalized)||[]).forEach(n=>norm[n.from]=n.to);
+        const byT={};Object.values((j.query&&j.query.pages)||{}).forEach(pg=>byT[pg.title]=pg);
+        files.forEach(k=>{info[k]=pack(byT[norm[PH[k]]||PH[k]]);});
+      }
+      for(const k of keys.filter(k=>PH[k].startsWith('Category:'))){
+        const j=await (await fetch(API+'&generator=categorymembers&gcmtype=file&gcmlimit=10&gcmtitle='+encodeURIComponent(PH[k]))).json();
+        const pgs=Object.values((j.query&&j.query.pages)||{}).filter(pg=>pg.imageinfo&&/\.jpe?g$/i.test(pg.title)).sort((a,b)=>a.title.localeCompare(b.title));
+        const best=pgs.find(pg=>pg.imageinfo[0].width>pg.imageinfo[0].height)||pgs[0];
+        info[k]=pack(best);
+      }
+      try{localStorage.setItem(CK,JSON.stringify(info));}catch(e){}
+    }catch(e){return;}
+  }
+  els.forEach(e=>{const r=info[e.dataset.k];if(!r)return;
+    const img=e.tagName==='IMG'?e:e.querySelector('img');img.src=r.u;
+    const cr=r.a+(r.l?' · '+r.l:'');img.title=phCap(e.dataset.k)+' · '+cr;
+    const sm=e.querySelector&&e.querySelector('small');if(sm)sm.textContent=cr;
+    img.onload=()=>{e.hidden=false;};img.onerror=()=>{e.hidden=true;};});
+  const cr=document.getElementById('credits');
+  const used=keys.filter(k=>info[k]);
+  if(used.length){
+    used.forEach(k=>{const r=info[k];const a=document.createElement('a');a.href=r.p;a.target='_blank';a.rel='noopener';
+      a.textContent=phCap(k)+' · '+r.a+(r.l?' · '+r.l:'')+' · Wikimedia Commons';cr.appendChild(a);});
+    cr.hidden=false;document.getElementById('photos-credits').hidden=false;
+  }
 })();
 
 document.getElementById('bGpx').onclick=()=>{
